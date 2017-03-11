@@ -1,0 +1,650 @@
+<!--?xml version="1.0" encoding="utf-8" ?-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml-transitional.dtd">
+<html><head>
+  <title>valkopat@progtest.fit.cvut.cz - ProgTest</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link href="task_files/css.css" rel="stylesheet" type="text/css">
+  <script src="task_files/shared.js" language="JavaScript" type="text/javascript"></script>
+  
+ </head>
+ <body text="#000000" bgcolor="#828273">
+  <table width="100%" cellspacing="0" cellpadding="0" border="0">
+   <tbody><tr height="25">
+    <td bgcolor="#00ff00" align="left"><span class="navLink"><a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=Main">ProgTest</a>&nbsp;&nbsp;►&nbsp;&nbsp;<a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=Course&amp;Cou=205">BI-OSY (16/17 LS)</a>&nbsp;&nbsp;►&nbsp;&nbsp;<a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=TaskGrp&amp;Cou=205&amp;Tgr=1255">Úloha #1</a>&nbsp;&nbsp;►&nbsp;&nbsp;<b>Síťová infrastruktura</b></span></td>
+    <td bgcolor="#00ff00" align="right"><a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=Logout">Logout</a></td>
+   </tr>
+  </tbody></table>
+<br>
+
+
+
+
+ <br>
+ <br>
+   <center>
+   <div class="topLayout">
+    <div class="outBox">
+     <table class="header" width="100%" cellspacing="0" cellpadding="0">
+      <tbody><tr>
+       <td class="header"><b>Síťová infrastruktura</b></td>
+      </tr>
+     </tbody></table>
+    </div>
+   </div>
+  </center>
+ <form name="form1" method="post" action="?X=TaskU&amp;Cou=205&amp;Tgr=1255&amp;Tsk=1435" enctype="multipart/form-data">
+  <center>
+    <div class="topLayout">
+     <div class="outBox">
+      <table id="maintable" width="100%" cellspacing="0" cellpadding="2" border="0">
+       <colgroup><col width="200">
+       <col>
+       <col width="130">
+
+       </colgroup><tbody><tr>
+        <td class="ltCell" align="left"><b>Termín odevzdání:</b></td>
+        <td class="tCell" align="left"><b>16.04.2017 23:59:59</b></td>
+        <td class="rtCell" id="countdown" align="right">3157107.787 sec</td>
+       </tr>
+
+       <tr>
+        <td class="lCell" align="left"><b>Hodnocení:</b></td>
+        <td class="rCell" colspan="2" align="left"><b>0.0000</b></td>
+       </tr>
+       <tr>
+        <td class="lCell" align="left"><b>Max. hodnocení:</b></td>
+        <td class="rCell" colspan="2" align="left"><b>30.0000</b> (bez bonusů)</td>
+       </tr>
+       <tr>
+        <td class="lCell" align="left"><b>Odevzdaná řešení:</b></td>
+        <td class="rCell" colspan="2" align="left">0 /  60</td>
+       </tr>
+
+       <tr>
+        <td class="lbCell" align="left"><b>Nápovědy:</b></td>
+        <td class="rbCell" colspan="2" align="left">0 / 0</td>
+       </tr>
+
+       <tr>
+        <td class="lrtbCell" colspan="3" align="left"><p>Úkolem je realizovat třídu, která bude umožňovat rychle řešit problémy 
+v oblasti konfigurace sítí.</p>
+
+<p>Předpokládáme síťovou infrastrukturu. V ní se nachází servery
+propojené vysokorychlostními linkami. Dvojice serverů může být propojena 
+jednou linkou, více linkami, případně nemusí být propojena vůbec. Každá linka 
+propojuje dvojici serverů, parametrem linky je její latence v milisekundách. 
+Všechny linky jsou obousměrné (duplexní). Dvojice serverů může komunikovat lze 
+buď přímo, nebo přes několik mezilehlých serverů. Pokud komunikace probíhá přes 
+mezilehlé servery, je latence takového spojení daná pouze součtem latencí 
+použitých linek.</p>
+
+<p>Pro takto definovanou síťovou infrastrukturu potřebujeme počítat některé její 
+vlastnosti. Zajímá nás řešení dvou typů problémů:</p>
+
+<ul>
+ <li><p>nalezení "středu" sítě (center). Hledáme server takový, že latence spojení 
+   mezi tímto serverem a ostatními servery je co nejmenší. Pokud zvolíme nějaký 
+   server X za střed sítě, dostaneme pro ostatní servery A, B, C, ... latence 
+   spojení l<sub>X-A</sub>, l<sub>X-B</sub>, l<sub>X-C</sub>, ... Zaměříme se na 
+   maximum těchto hodnot:  max { l<sub>X-A</sub>, l<sub>X-B</sub>, l<sub>X-C</sub>, ... },
+   chceme zvolit takové X, aby toto maximum bylo co nejmenší možné.</p>
+
+   <p>Předpokládejme síť podle obrázku:</p>
+   
+   <img src="task_files/index.png"><br>
+   
+   <p>Latence spojení jsou shrnuté v následující tabulce:
+   </p><pre>        A     B    C    D     max
+   A    *    30   50   10      50
+   B    30    *   40   40      40 
+   C    50   40    *   60      60
+   D    10   40   60    *      60
+   </pre>
+   Střed v této síti je server B. Pro server B vychází nejvyšší latence spojení B-D 
+   s hodnotou 40ms, volba jiného středu je vždy horší.<p></p>
+   
+   <p>Může se stát, že v dané síti existuje více stejně dobrých středů. Pak za řešení 
+   považujeme libovolný z nich. Problém nemá rozumné řešení, pokud se pokusíme najít 
+   střed např. pro dvojici (nebo více) izolovaných sítí. Tato varianta nebude zadávaná,</p>
+   </li>
+   
+ <li>nalezení redundance sítě (redundancy). Pro zadanou síť a zadaný střed 
+   chceme určit, kolik nezávislých propojení existuje mezi tímto zadaným středem a 
+   ostatními servery v síti. Tento parametr ukazuje odolnost spojení při výpadku linky.<p></p>
+
+   <p>V ukázkové síti můžeme např. hledat počet nezávislých spojení mezi středem B a serverem A.
+   Zřejmé je spojení B-A, dále B-C-D-A a B-C-A. Vyjmenovaná spojení jsou nezávislá (mají společné 
+   servery, ale nemají společnou žádnou linku, mezi B a C jsou dvě nezávislé linky). Pro síť 
+   v ukázce dojdeme k výsledku:
+   </p><pre>   B-A: 3  (B-A, B-C-D-A, B-C-A)
+   B-C: 3  (B-C, B-C, B-A-C)
+   B-D: 2  (B-A-D, B-C-D)
+   </pre></li> 
+</ul>
+
+
+<p>Vaším úkolem je realizovat třídu <tt>CSolver</tt>, která dokáže takové problémy řešit. 
+Oba uvedené problémy jsou výpočetně náročnější a oba problémy je potřeba řešit rychle. Proto 
+bude využito vláken k rozdělení výpočetní zátěže na více CPU a asynchronního modelu výpočtu.</p>
+
+<p>Třída <tt>CSolver</tt> má modelovat opakované výpočty obou výše popsaných problémů. Problémy 
+zadávají zákaznici (instance třídy <tt>CCustomer</tt>, vytvořené testovacím prostředím a předané 
+<tt>CSolver</tt>). Zákaznici předávají problémy (instance tříd <tt>CCenter</tt> a <tt>CRedundancy</tt>), 
+Vaše implementace <tt>CSolver</tt> si instance problému převezme, zpracuje je a vyřešené je zadávajícímu 
+vrátí.</p>
+
+<p>Vaše implementace si vytvoří pracovní vlákna, jejich počet je předán při spouštění výpočtu. Dále,
+pro načítání problémů si vytvořte dvě pomocná vlákna pro každého zákazníka. Tato vlákna budou volat 
+odpovídající metody instance <tt>CCustomer</tt>, jedno vlákno bude volat funkci pro doručování 
+problémů typu center, druhé pro doručování problémů redundancy. Zadaný problém 
+má podobu instance třídy <tt>CCenter</tt> nebo třídy <tt>CRedundancy</tt> (podle typu úlohy, instance 
+jsou předané jako smart pointery - <tt>shared_ptr&lt;CCenter&gt;</tt> a <tt>shared_ptr&lt;CRedundancy&gt;</tt>, 
+pro zkrácení zápisu jsou pro smart pointery vytvořené aliasy <tt>ACenter</tt> a <tt>ARedundancy</tt>). 
+která přebírají zadávané problémy, nejsou určena k tomu, aby počítala řešení, jejich úkolem je pouze předání 
+problémů dále k pracovním vláknům.</p>
+
+<p>Pracovních vláken vytvoříte více (podle parametrů při inicializaci). Pracovní vlákna vyřeší 
+zadanou instanci problémů a podle výsledků vyplní příslušné složky instance <tt>ACenter</tt> 
+/ <tt>ARedundancy</tt>. Po vyplnění informují zadavatele o dokončení výpočtu dané instance problému tím, že 
+zavolají odpovídající metodu zadávajícího zákazníka a předají mu vyplněnou instanci problému.</p>
+
+<p>Jak již bylo řečeno, načítací vlákna slouží pouze k odebírání požadavků od zákazníků a k předávání 
+těchto požadavků pracovním vláknům. Počet načítacích vláken vláken je dán dvojnásobkem počtu zákazníků. 
+Pokud by načítací vlákna rovnou řešila zadávané problémy a zákazníků bylo mnoho, vedlo by takové řešení 
+k neefektivnímu využívání CPU (mnoho rozpracovaných problémů, časté přepínání kontextu, ...). Proto požadované 
+řešení ponechává výpočty pouze na pracovních vláknech, kterých je pouze zadaný fixní počet.</p> 
+
+
+<p>Rozhraním vaší implementace bude třída <tt>CSolver</tt>. V této třídě musí být k dispozici 
+metody podle popisu níže (mohou existovat i další privátní metody potřebné pro Vaší implementaci):</p>
+
+<dl>
+ <dt><tt>implicitní konstruktor</tt></dt><dd>inicializuje instanci třídy.</dd>
+ 
+ <dt><tt>destruktor</tt></dt><dd>uvolní prostředky alokované instancí <tt>CSolver</tt>.</dd>
+ 
+ <dt><tt>Start (thr)</tt></dt><dd>metoda spustí vlastní výpočet. V této metodě vytvoříte 
+    potřebná pracovní vlákna pro výpočty. Pracovních vláken vytvořte celkem <tt>thr</tt> podle hodnoty 
+    parametru. Tím se spustí obsluha požadavků od zákazníků. Metoda <tt>Start</tt> se po spuštění pracovních 
+    vláken okamžitě vrací (tedy nečeká na doběhnutí výpočtů).</dd>
+
+ <dt><tt>Stop ()</tt></dt><dd>metoda informuje, že se mají ukončit výpočty. Tedy je potřeba 
+    převzít zbývající požadavky od existujících zákazníků, počkat na jejich vypočtení a vrácení výsledků. 
+    Metoda <tt>Stop</tt> se vrátí volajícímu po doběhnutí a uvolnění jak načítacích, tak pracovních vláken.
+    Metoda <tt>Stop</tt> se musí vrátit do volajícího. Neukončujte celý program (nevolejte <tt>exit</tt> 
+    a podobné funkce), pokud ukončíte celý program, budete hodnoceni 0 body.</dd>
+    
+ <dt><tt>AddCustomer ( c )</tt></dt><dd>metoda přidá dalšího zákazníka do seznamu zákazníků obsluhovaných touto 
+   instancí. Parametrem je smart pointer (<tt>shared_ptr&lt;CCustomer&gt;</tt>, zkráceně <tt>ACustomer</tt>) 
+   začleňovaného zákazníka. Metoda <tt>AddCustomer</tt> musí mj. vytvořit dvě pomocná načítací vlákna, která budou 
+   tohoto nového zákazníka obsluhovat. Pozor: metodu lze zavolat ještě před voláním <tt>Start</tt> (tedy zákazníci 
+   jsou obsluhovaní, ale výpočetní vlákna ještě neexistují), tak i po spuštění <tt>Start</tt> (nový zákazník je přidán 
+   k existujícím a je zahájena jeho obsluha).</dd>
+   
+ <dt><tt>Solve (center)</tt></dt><dd> - metoda vypočte sekvenčně jeden zadaný problém typu 
+    <tt>ACenter</tt> (parametr). Testovací prostředí nejprve zkouší sekvenční řešení, abyste případně 
+    snáze odhalili chyby v implementaci algoritmu.</dd>
+
+ <dt><tt>Solve (redundancy)</tt></dt><dd> - metoda vypočte sekvenčně jeden zadaný problém typu 
+    <tt>ARedundancy</tt> (parametr). Testovací prostředí nejprve zkouší sekvenční řešení, abyste případně 
+    snáze odhalili chyby v implementaci algoritmu.</dd>
+</dl>
+
+
+<p>Třída <tt>CCustomer</tt> definuje rozhraní jednoho zákazníka. Zákazník je implementován v testovacím prostředí 
+a je předán Vaší implementaci v podobě smart pointeru (<tt>shared_ptr&lt;CCustomer&gt;</tt> alias <tt>ACustomer</tt>). 
+Rozhraní <tt>CCustomer</tt> má následující metody:</p>
+
+<dl>
+ <dt>destruktor</dt><dd>uvolňuje prostředky alokované pro zákazníka,</dd>
+
+ <dt><tt>GenCenter()</tt></dt><dd>metoda po zavolání vrací další instanci problému center ke zpracování. 
+   Návratovou hodnotou je smart pointer (<tt>shared_ptr&lt;CCenter&gt;</tt> alias <tt>ACenter</tt>)</dd> s 
+   popisem problému k vyřešení. Pokud je vrácen prázdný smart pointer (obsahuje NULL), znamená to, že daný zákazník 
+   již nemá žádný další problém typu center k vyřešení (ale stále může dodávat problémy typu redundancy). Pokud 
+   <tt>GenCenter</tt> vrátí prázdný ukazatel, lze ukončit příslušné načítací vlákno.
+   
+
+ <dt><tt>Solved ( center )</tt></dt><dd>metodou se předá vyřešený problém typu center zpět zákazníkovi. Je potřeba 
+   vrátit vyřešený problém tomu zákazníkovi, který problém zadal. Dále, je potřeba vrátit tu samou instanci problému, 
+   kterou dříve předala metoda <tt>GenCenter</tt>, pouze je v ní potřeba vyplnit vypočítané hodnoty. Metodu <tt>Solved</tt>
+   lze volat rovnou z pracovního vlákna, které dokončí výpočet.</dd>
+
+
+ <dt><tt>GenRedundancy()</tt></dt><dd>metoda po zavolání vrací další instanci problému redundancy ke zpracování. 
+   Návratovou hodnotou je smart pointer (<tt>shared_ptr&lt;CRedundancy&gt;</tt> alias <tt>ARedundancy</tt>)</dd> s 
+   popisem problému k vyřešení. Pokud je vrácen prázdný smart pointer (obsahuje NULL), znamená to, že daný zákazník 
+   již nemá žádný další problém typu redundancy k vyřešení (ale stále může dodávat problémy typu center). Pokud 
+   <tt>GenRedundancy</tt> vrátí prázdný ukazatel, lze ukončit příslušné načítací vlákno.
+
+ <dt><tt>Solved ( redundancy )</tt></dt><dd>metodou se předá vyřešený problém typu redundancy zpět zákazníkovi. Je potřeba 
+   vrátit vyřešený problém tomu zákazníkovi, který problém zadal. Dále, je potřeba vrátit tu samou instanci problému, 
+   kterou dříve předala metoda <tt>GenRedundancy</tt>, pouze je v ní potřeba vyplnit vypočítané hodnoty. Metodu <tt>Solved</tt>
+   lze volat rovnou z pracovního vlákna, které dokončí výpočet.</dd>
+</dl>
+
+<p>Třída <tt>CCenter</tt> je deklarovaná a implementovaná v testovacím prostředí. 
+Pro testování Vaší implementace je dispozici v bloku podmíněného překladu (ponechte jej tak). 
+Význam složek je následující:</p>
+
+<dl>
+ <dt><tt>m_Links</tt></dt><dd>seznam linek, které propojují servery v síti. Tato složka je vyplněna testovacím 
+   prostředím při zadávání problému, Vaše implementace ji může číst, ale ne zapisovat.</dd>
+
+ <dt><tt>m_Center</tt></dt><dd>C++ řetězec se jménem serveru v nalezeném středu sítě (viz popis problému center výše). 
+   Vaše implementace musí vyplnit tuto složku před odevzdáním vyřešeného problému.</dd>
+
+ <dt><tt>m_Delays</tt></dt><dd>asociativní pole udávající latenci spojení mezi nalezeným středem sítě a ostatními servery 
+   v síti.Vaše implementace musí vyplnit tuto složku před odevzdáním vyřešeného problému.</dd>
+
+ <dt><tt>m_MaxDelay</tt></dt><dd>maximum z latencí spojení z nalezeného středu sítě. Jedná se o maximum z hodnot 
+   v asociativním poli <tt>m_Delays</tt>. Vaše implementace musí vyplnit tuto složku před odevzdáním vyřešeného problému.</dd>
+
+ <dt><tt>implicitní konstruktor, metoda AddLink, operátor pro výstup</tt></dt><dd>pomocné metody pro vytváření nastavování instance.</dd>
+</dl>
+
+<p>Třída <tt>CRedundancy</tt> je deklarovaná a implementovaná v testovacím prostředí. 
+Pro testování Vaší implementace je dispozici v bloku podmíněného překladu (ponechte jej tak). 
+Význam složek je následující:</p>
+
+<dl>
+ <dt><tt>m_Links</tt></dt><dd>seznam linek, které propojují servery v síti. Tato složka je vyplněna testovacím 
+   prostředím při zadávání problému, Vaše implementace ji může číst, ale ne zapisovat.</dd>
+
+ <dt><tt>m_Center</tt></dt><dd>C++ řetězec se jménem serveru ve středu sítě (viz popis problému redundancy výše). 
+   Bude testována redundance tras z tohoto serveru do ostatních serverů v zadané síti. Složka je vyplněna 
+   testovacím prostředím při zadávání problému, Vaše implementace ji může číst, ale ne zapisovat.</dd>
+
+ <dt><tt>m_Redundancy</tt></dt><dd>asociativní pole udávající počet nezávislých spojení mezi středem a ostatními servery 
+   v síti. Vaše implementace musí vyplnit tuto složku před odevzdáním vyřešeného problému.</dd>
+
+ <dt><tt>implicitní konstruktor, metoda AddLink, operátor pro výstup</tt></dt><dd>pomocné metody pro vytváření nastavování instance.</dd>
+</dl>
+
+<p>Třída <tt>CLink</tt> je deklarovaná a implementovaná v testovacím prostředí. 
+Pro testování Vaší implementace je dispozici v bloku podmíněného překladu (ponechte jej tak). 
+Význam složek je následující:</p>
+<dl>
+ <dt><tt>konstruktor</tt></dt><dd>pomocný konstruktor pro vytváření instance.</dd>
+
+ <dt><tt>m_From, m_To</tt></dt><dd>jména serverů, které linka propojuje (linka je symetrická).</dd>
+ 
+ <dt><tt>m_Delay</tt></dt><dd>latence linky</dd>
+</dl>
+
+<hr>
+
+<p>Odevzdávejte zdrojový kód s implementací požadované třídy <tt>CSolver</tt> s požadovanými 
+metodami. Můžete samozřejmě přidat i další podpůrné třídy a funkce.
+Do Vaší implementace nevkládejte funkci <tt>main</tt> ani direktivy pro 
+vkládání hlavičkových souborů. Funkci <tt>main</tt> a hlavičkové soubory 
+lze ponechat pouze v případě, že jsou zabalené v bloku podmíněného 
+překladu.</p>
+
+<p>Využijte přiložený ukázkový soubor. Celá implementace patří do souboru 
+<tt>solution.cpp</tt>, dodaný soubor je pouze mustr. Pokud zachováte bloky 
+podmíněného překladu, můžete soubor <tt>solution.cpp</tt> odevzdávat jako 
+řešení úlohy.</p>
+
+<p>Při řešení lze využít pthread nebo C++11 API pro práci s vlákny (viz vložené hlavičkové 
+soubory). Dostupný kompilátor g++ verze 4.9, tato verze kompilátoru zvládá většinu 
+C++11 konstrukcí.</p>
+
+<hr>
+
+<b>Nápověda:</b><br>
+
+<ul>
+ <li>Nejprve implementujte sekvenční funkce řešení problémů center/redundancy. 
+  Správnost implementace lze ověřit lokálně pomocí infrastruktury v přiloženém archivu. 
+  Až budete mít funkce lokálně otestované,  můžete je zkusit odevzdat na Progtest 
+  (pro tento pokus nechte ostatní metody třídy <tt>CSolver</tt> s prázdným tělem). Takové řešení 
+  samozřejmě nedostane žádné body, ale uvidíte, zda správně projde sekvenčními testy.</li>
+
+ <li>Abyste zapojili co nejvíce jader, zpracovávejte několik problémů najednou. 
+   Vyzvedněte je pomocí opakovaného volání <tt>GenCenter/GenRedundancy</tt> 
+   jednotlivých zákazníků, okamžitě po vyřešení je vraťte voláním metod <tt>Solve</tt>. 
+   Není potřeba dodržovat pořadí při vracení řešení. Pokud budete najednou zpracovávat 
+   pouze jeden problém, nejspíše zaměstnáte pouze jedno vlákno a ostatní vlákna budou čekat 
+   bez užitku.</li>
+
+ <li>Instance <tt>CSolver</tt> je vytvářená opakovaně, pro různé vstupy.
+   Nespoléhejte se na inicializaci globálních proměnných - při druhém a dalším 
+   zavolání budou mít globální proměnné hodnotu jinou. Je rozumné případné globální 
+   proměnné vždy inicializovat v konstruktoru nebo na začátku metody <tt>Start</tt>. Ještě
+   lepší je nepoužívat globální proměnné vůbec.</li>
+
+ <li>Nepoužívejte mutexy a podmíněné proměnné inicializované pomocí
+   <tt>PTHREAD_MUTEX_INITIALIZER</tt>, důvod je stejný jako v minulém odstavci. 
+   Použijte raději <tt>pthread_mutex_init()</tt>.</li>
+
+ <li>Testovací prostředí samo o sobě nevytváří žádná vlákna, tedy metoda
+   <tt>Start</tt> sama o sobě nemusí být reentrantní (může používat 
+   globální proměnné, s omezením výše).</li>
+
+ <li>Instance tříd CCenter / CRedundancy alokovalo testovací prostředí při vytváření 
+     příslušných smart pointerů. K uvolnění dojde automaticky po zrušení všech odkazů.
+     Uvolnění těchto instancí tedy není Vaší starostí, stačí zrušit všechny odkazy 
+     na takto předané smart pointery. Váš program je ale zodpovědný za uvolnění 
+     všech ostatních prostředků, které si alokoval.</li>
+
+ <li>Problémy musíte načítat, zpracovávat a odevzdávat průběžně. Postup, kdy
+   si všechny problémy načtete do paměťových struktur a teprve pak je začnete 
+   zpracovávat, nebude fungovat. Takové řešení skončí deadlockem v prvním testu 
+   s více vlákny. Musíte zároveň obsluhovat požadavky typu center i redundancy. Řešení, 
+   které se bude snažit nejprve vyřešit všechny problémy typu center a pak začne 
+   obsluhovat problémy redundancy, skončí taktéž deadlockem.</li>
+   
+ <li>Musíte najednou obsluhovat všechny přidané zákazníky. Pokud se budete snažit 
+   nejprve obsloužit zákazníka A, následně pouze zákazníka B, ..., skončíte taktéž v deadlocku.</li>
+   
+
+ <li>Volání metod <tt>Solve</tt> je reentrantní, není potřeba je serializovat
+   (obalovat mutexy). Každý vyřešený problém odevzdávejte právě 1x. Rozumné 
+   je volat metody <tt>Solve</tt> přímo z pracovního vlákna, které pro daný problém
+   dokončilo analýzu.</li>
+
+ <li>Neukončujte metodu <tt>Stop</tt> pomocí <tt>exit</tt>,
+   <tt>pthread_exit</tt> a podobných funkcí. Pokud se funkce <tt>Stop</tt> 
+   nevrátí do volajícího, bude Vaše implementace vyhodnocena jako nesprávná.</li>
+
+ <li>Využijte přiložená vzorová data. V archivu jednak naleznete ukázku
+   volání rozhraní a dále několik testovacích vstupů a odpovídajících výsledků.</li>
+
+ <li>V testovacím prostředí je k dispozici STL. Myslete ale na to, že ten samý STL 
+     kontejner nelze najednou zpřístupnit z více vláken. Více si o omezeních přečtěte např. 
+     na <a href="http://en.cppreference.com/w/cpp/container">C++ reference - thread safety.</a></li>
+
+ <li>Testovací prostředí je omezené velikostí paměti. Není uplatňován žádný explicitní limit, ale VM, 
+   ve které testy běží, je omezena 4 GiB celkové dostupné RAM. Úloha může být dost paměťově náročná, 
+   zejména pokud se rozhodnete pro jemné členění úlohy na jednotlivá vlákna. Pokud se rozhodnete pro 
+   takové jemné rozčlenění úlohy, možná budete muset přidat synchronizaci běhu vláken tak, aby celková 
+   potřebná paměť v žádný okamžik nepřesáhla rozumný limit. Pro běh máte garantováno, že Váš program 
+   má k dispozici nejméně 500 MiB pro Vaše data (data segment + stack + heap). Pro zvídavé - zbytek do 
+   4GiB je zabraný běžícím OS, dalšími procesy, zásobníky Vašich vláken a nějakou rezervou.</li>
+
+ <li>Pokud se rozhodnete pro všechny bonusy, je potřeba velmi pečlivě nastavovat granularitu řešeného 
+  problému. Pokud řešený problém rozdělíte na příliš mnoho drobných podproblémů, začne se příliš mnoho 
+  uplatňovat režie. Dále, pokud máte najednou rozpracováno příliš mnoho problémů (a každý je rozdělen 
+  na velké množství podproblémů), začne se výpočet dále zpomalovat (mj. se začnou hůře využívat cache CPU).
+  Aby se tomu zabránilo, řídí referenční řešení počet najednou rozpracovaných úloh (navíc dynamicky 
+  podle velikosti rozpracované úlohy).</li>
+</ul>
+
+<hr>
+
+<b>Co znamenají jednotlivé testy:</b><br>
+<dl>
+ <dt><b>Test algoritmu (sekvencni)</b></dt><dd>Testovací prostředí opakovaně
+   volá metody <tt>Solve(center)/Solve(redundancy)</tt> pro různé vstupy a kontroluje 
+   vypočtené výsledky. Slouží pro otestování implementace Vašeho algoritmu. 
+   Není vytvářena instance <tt>CSolver</tt> a není volaná metoda <tt>Start</tt>. 
+   Na tomto testu můžete ověřit, zda Vaše implementace algoritmu je dostatečně rychlá.
+   Testují se jednak data z dodané ukázky a dále i náhodně generované problémy.</dd>
+
+ <dt><b>Základní test/test několika/test mnoha thready</b></dt><dd>Testovací
+   prostředí vytváří instanci <tt>CSolver</tt> pro různý počet vláken a zákazníků.
+
+ </dd><dt><b>Test zahlcení</b></dt><dd>Testovací prostředí generuje velké množství 
+   požadavků a kontroluje, zda si s tím Vaše implementace poradí. Pokud nebudete 
+   rozumně řídit počet rozpracovaných požadavků, překročíte paměťový limit.
+
+ </dd><dt><b>Test zrychleni vypoctu</b></dt><dd>Testovací prostředí spouští Vaši
+   implementaci pro ta samá vstupní data s různým počtem vláken. Měří se čas běhu  
+   (wall i CPU). S rostoucím počtem vláken by měl wall time klesat, CPU time 
+   mírně růst (vlákna mají možnost běžet na dalších CPU). Pokud wall time    
+   neklesne, nebo klesne málo (např. pro 2 vlákna by měl ideálně klesnout na 
+   0.5, existuje určitá rezerva), test není splněn.</dd>
+
+ <dt><b>Busy waiting - pomale pozadavky</b></dt><dd>Do volání
+   <tt>GenCenter/GenRedundancy</tt> testovací prostředí vkládá uspávání vlákna 
+   (např. na 100 ms). Výpočetní vlákna tím nemají práci. Pokud výpočetní vlákna 
+   nejsou synchronizovaná blokujícím způsobem, výrazně vzroste CPU time a test
+   selže.</dd>      
+
+ <dt><b>Busy waiting - pomale notifikace</b></dt><dd>Do volání <tt>Solved</tt>
+   je vložena pauza. Pokud jsou špatně blokována vlákna načítající vstup, výrazně 
+   vzroste CPU time. (Tento scénář je zde méně pravděpodobný.) Dále tímto testem
+   neprojdete, pokud zbytečně serializujete volání <tt>Solved</tt>.</dd>
+
+ <dt><b>Busy waiting - complex</b></dt><dt></dt><dd>Je kombinací dvou posledně
+   jmenovaných testů.</dd>
+
+<dt><b>Velmi mnoho zákazníků</b></dt><dd>Testovací prostředí zkouší přidávat 
+   mnoho zákazníků, každý zákazník má pouze několik málo požadavků a skončí.
+   Po skončení zákazníka je potřeba průběžně ukončovat a uvolňovat načítací vlákna.
+   Pokud se uvolnění načítacích vláken neděje průběžně, enormně vzroste paměťová 
+   náročnost a program spadne. Jedná se o test bonusový.</dd>
+
+<dt><b>Test rozlozeni zateze 1</b></dt><dd>Testovací prostředí zkouší, zda 
+   se do řešení jednoho problému typu redundancy dokáže zapojit více dostupných vláken.
+   Pokud chcete v tomto testu uspět, musíte Váš program navrhnout tak, aby bylo 
+   možné využít více vláken i při analýze jedné instance problému. Jedná se o 
+   test bonusový.</dd>
+
+<dt><b>Test rozlozeni zateze 2</b></dt><dd>Testovací prostředí zkouší, zda 
+   se do řešení jednoho problému typu center dokáže zapojit více dostupných vláken. 
+   Pokud chcete v tomto testu uspět, musíte Váš program navrhnout tak, aby 
+   bylo možné využít více vláken i při analýze jedné instance problému. 
+   Jedná se o test bonusový.</dd>
+</dl>
+
+<hr>
+
+<b>Jak to vyřešit - pozor, SPOILER</b>
+<p>Pokud se nechcete obrat o dobrý pocit, že jste úlohu vyřešili zcela sami, 
+nečtěte dále.</p>
+<ul>
+  <li>Oba problémy jsou řešitelné pomocí stejného principu - převodu na 
+    grafový problém.</li>
+
+  <li>Problém typu center je problém hledání cest mezi uzly. Efektivní 
+    algoritmus to dokáže v čase <tt>O(n^3)</tt>, za kterým následuje krátké 
+    zpracování nalezených výsledků.</li>
+
+  <li>Problém typu redundancy lze převést na zjednodušenou variantu problému 
+    toků v síti. Efektivní algoritmus to dokáže v čase <tt>Ω(n^2) - 
+    O(n^4)</tt>, v závislosti na podobě grafu.</li>
+
+ <li>Vzhledem k heterogennímu charakteru vstupních dat se hodí objektový návrh 
+    s polymorfismem.</li>
+</ul>
+
+<b>Další nápověda - SUPERSPOILER</b><br>
+
+<p>Podle potřeby v průběhu řešení úlohy zveřejníme další nápovědy pro 
+tápající studenty.</p>
+
+</td>
+       </tr>
+
+
+       <tr>
+        <td class="ltbCell" colspan="2" align="left"><b>Vzorová data:</b></td>
+        <td class="rtbCell" align="center"><div class="but1 w120"><div class="but2"><a class="butLink" href="https://progtest.fit.cvut.cz/index.php?X=TaskS&amp;Cou=205&amp;Tgr=1255&amp;Tsk=1435">Download</a></div></div></td>
+       </tr>
+
+
+
+
+
+
+       <tr>
+ 
+        <td class="ltbCell" valign="top" align="left"><b>Odevzdat:</b></td>
+        <td class="tbCell" valign="top" align="left"><input class="std" name="FILE" type="file"></td>
+        <td class="rtbCell" valign="top"><div class="w120 outButton"><input name="S" value="Odevzdat" class="updButton" type="submit"></div></td>
+ 
+       </tr>
+
+
+
+
+
+
+
+
+      </tbody></table>
+     </div>
+    </div>
+
+
+ <br>
+ <div class="topLayout">
+  <div class="outBox">
+   <table id="reftable" width="100%" cellspacing="0" cellpadding="2" border="0">
+   <tbody><tr>
+    <td class="ltbSepCell" align="left"><input name="SHOW_REF" onchange="showRefSolution()" type="checkbox">&nbsp;<b>Referenční řešení</b></td>
+    <td class="rtbSepCell" align="right">&nbsp;</td>
+   </tr>
+   <tr style="display: none;">
+    <td class="lrtbCell" colspan="2" align="left"><ul><li><b>Hodnotitel: automat</b><ul><li>Program zkompilován</li><li>Test 'Test algoritmu Center (sekvencni)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.002 s (limit: 10.000 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Test algoritmu Redundancy (sekvencni)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.011 s (limit: 9.998 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Zakladni test (1x thread, 1x customer)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 80.00 %</li><li>Celková doba běhu: 0.854 s (limit: 30.000 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Test nekolika thready (1x customer)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 80.00 %</li><li>Celková doba běhu: 0.382 s (limit: 29.146 s)</li><li>CPU time: 1.104 s (limit: 29.128 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Test mnoha thready (n customers)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 80.00 %</li><li>Celková doba běhu: 0.915 s (limit: 28.764 s)</li><li>CPU time: 4.728 s (limit: 28.024 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Test zahlceni': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 80.00 %</li><li>Celková doba běhu: 2.664 s (limit: 27.849 s)</li><li>CPU time: 8.488 s (limit: 23.296 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Test zrychleni vypoctu': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 50.00 %</li><li>Celková doba běhu: 1.567 s (limit: 25.185 s)</li><li>CPU time: 3.476 s (limit: 14.808 s)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Busy waiting test (pomale pozadavky)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 50.00 %</li><li>Celková doba běhu: 3.016 s (limit: 30.000 s)</li><li>Úspěch v nepovinném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Busy waiting test (pomale notifikace)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 50.00 %</li><li>Celková doba běhu: 4.029 s (limit: 26.984 s)</li><li>Úspěch v nepovinném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Busy waiting test (complex)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 50.00 %</li><li>Celková doba běhu: 3.411 s (limit: 22.955 s)</li><li>Úspěch v nepovinném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Velmi mnoho zakazniku': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 2.555 s (limit: 20.000 s)</li><li>Využití paměti: 1414264 KiB (limit: 2023092 KiB)</li><li>Úspěch v bonusovém testu, hodnocení: 120.00 %</li></ul></li>
+<li>Test 'Test rozlozeni zateze 1': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.087 s (limit: 10.000 s)</li><li>CPU time: 0.324 s (limit: 10.000 s)</li><li>Úspěch v bonusovém testu, hodnocení: 120.00 %</li></ul></li>
+<li>Test 'Test rozlozeni zateze 2': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.223 s (limit: 9.913 s)</li><li>CPU time: 0.588 s (limit: 9.676 s)</li><li>Úspěch v bonusovém testu, hodnocení: 120.00 %</li></ul></li>
+<li>Celkové hodnocení: 172.80 % (= 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.20 * 1.20 * 1.20)</li></ul></li><li>Celkové procentní hodnocení: 172.80 %</li><li>Bonus za včasné odevzdání: 3.00</li><li>Celkem bodů: 1.73 * ( 30.00 + 3.00 ) = 57.02</li></ul></td>
+   </tr>
+    <tr style="display: none;">
+  <td class="ltbCell" align="left"><b>SW metriky:</b></td>
+  <td class="rtbCell" colspan="2" align="left">
+   <table cellpadding="2" border="0">
+    <tbody><tr>
+     <td>&nbsp;</td>
+     <td class="ac">Celkem</td>
+     <td class="ac">Průměr</td>
+     <td class="ac">Maximum</td>
+     <td>Jméno funkce</td>
+    </tr>
+    <tr>
+     <td>Funkce:</td>
+     <td class="ar"><b>36</b></td>
+     <td class="ar">--</td>
+     <td class="ar">--</td>
+     <td>--</td>
+    </tr>
+    <tr>
+     <td>Řádek kódu:</td>
+     <td class="ar"><b>437</b></td>
+     <td class="ar"><span class="textOk">12.14 ± 9.56</span></td>
+     <td class="ar"><span class="textOk">44</span></td>
+     <td><tt>bfsSearch(const vector &amp;,int,int)</tt></td>
+    </tr>
+    <tr>
+     <td>Cyklomatická složitost:</td>
+     <td class="ar"><b>59</b></td>
+     <td class="ar"><span class="textOk">1.64 ± 2.42</span></td>
+     <td class="ar"><span class="textOk">11</span></td>
+     <td><tt>bfsSearch(const vector &amp;,int,int)</tt></td>
+    </tr>
+   </tbody></table>
+  </td>
+ </tr>
+   </tbody></table>
+  </div>
+ </div>
+
+
+
+
+
+  </center>
+ </form>
+
+
+
+
+
+
+
+
+<script language="javascript" type="text/javascript">
+<!--
+
+var deadLine = new Date ( 1492379999 * 1000 );
+
+function CBpressed ( num )
+ {
+   var pre, cb;
+
+   cb = MM_findObj ( "cb_" + num );
+   pre = MM_findObj ( "pre_" + num );
+   if ( cb != null && pre != null )
+    {
+      pre . style . display = cb . checked ? "block" : "none";
+    }
+ }
+
+function unlockAdvice ( url )
+ {
+   if ( confirm ( 'Máte k dispozici pouze omezený počet nápověd. Navíc, použití nápovědy může snížit bodové hodnocení. Opravdu chcete zpřístupnit tuto nápovědu?' ) )
+    this . location = url;
+ }
+
+function setCountdown ( )
+ {
+   var d = new Date ();
+   var x = ( deadLine . getTime () - d . getTime () );
+   var tgt = document . getElementById ( "countdown" );
+
+   if ( x > 0 )
+    {
+      var s = Math . floor ( x / 1000 );
+      var ms = (x % 1000) + "";
+
+      while ( ms . length  < 3 ) ms = "0" + ms;
+
+      tgt . innerHTML = s + "." + ms + " sec";
+
+      window . setTimeout ( setCountdown, 117 );
+    }
+   else
+    {
+      tgt . innerHTML = '&nbsp;';
+    }
+ }
+
+function showRefSolution ( )
+ {
+   var t = document . getElementById ( "reftable" );
+   var x = document . getElementsByName ( "SHOW_REF" )[0];
+
+   if ( ! x ) return;
+   var r1 = t . rows[1], r2 = t . rows[2];
+
+   if ( x . checked )
+    {
+      r1 . style . display = "";
+      if ( r2 ) r2 . style . display = "";
+    }
+   else
+    {
+      r1 . style . display = "none";
+      if ( r2 ) r2 . style . display = "none";
+    }
+ }
+
+
+setCountdown ();
+showRefSolution ();
+
+// -->
+</script>
+
+
+
+
+
+ 
+
+
+<script style="display: none;" aria-hidden="true" type="application/x-lastpass" id="hiddenlpsubmitdiv"></script><script>try{(function() { for(var lastpass_iter=0; lastpass_iter < document.forms.length; lastpass_iter++){ var lastpass_f = document.forms[lastpass_iter]; if(typeof(lastpass_f.lpsubmitorig2)=="undefined"){ lastpass_f.lpsubmitorig2 = lastpass_f.submit; if (typeof(lastpass_f.lpsubmitorig2)=='object'){ continue;}lastpass_f.submit = function(){ var form=this; var customEvent = document.createEvent("Event"); customEvent.initEvent("lpCustomEvent", true, true); var d = document.getElementById("hiddenlpsubmitdiv"); if (d) {for(var i = 0; i < document.forms.length; i++){ if(document.forms[i]==form){ if (typeof(d.innerText) != 'undefined') { d.innerText=i.toString(); } else { d.textContent=i.toString(); } } } d.dispatchEvent(customEvent); }form.lpsubmitorig2(); } } }})()}catch(e){}</script></body></html>
+<!-- Template run time: 0.028987884521484 sec -->
