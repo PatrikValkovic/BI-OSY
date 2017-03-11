@@ -3,5 +3,5 @@ project(src)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp Solver.h)
+set(SOURCE_FILES main.cpp Solver.h test.inc data.inc devs.h)
 add_executable(src ${SOURCE_FILES})

@@ -1,12 +1,14 @@
-
+#ifndef __PROGTEST__
+#include "devs.h"
+#endif
 
 class CSolver
 {
 public:
-    static void Solve(ACenter x)
-    {}
+    static void Solve(shared_ptr<CCenter> x)
+    {    }
 
-    static void Solve(ARedundancy x)
+    static void Solve(shared_ptr<CRedundancy> x)
     {}
 
     CSolver(void)
