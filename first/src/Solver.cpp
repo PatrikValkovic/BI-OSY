@@ -46,10 +46,46 @@ namespace Valkovic
 	}
 
 
-	list<Vertex> fordFuklerson( const string& start, const string& end, unordered_map<string, Vertex>& vertexes )
+	list<list<Vertex>> FordFuklerson( const string& start, const string& end, unordered_map<string, Vertex>& vertexes )
 	{
-		//TODO 
-		return list<Vertex> {vertexes[start], vertexes[end]};
+		Vertex begin = vertexes[start];
+		Vertex finish = vertexes[end];
+
+		list<list<Vertex>> paths;
+
+		while( true )
+		{
+			list<Vertex> newPath;
+			queue<Vertex> toProccess;
+			set<Vertex> proccessed;
+			Vertex lastProccessed;
+			//BFS
+			while( !toProccess.empty() )
+			{
+				Vertex cur = toProccess.front();
+
+				if( cur.name == finish.name )
+					break;
+
+				toProccess.pop();
+				if( proccessed.find( cur ) != proccessed.end() )
+					continue;
+				proccessed.insert( cur );
+				lastProccessed = cur;
+
+				for( auto edge : cur.edges )
+					if( edge.capacity == 1 )
+						toProccess.push( vertexes[edge.to( cur.name )] );
+			}
+
+			if( lastProccessed.name != finish.name )
+				break;
+			else
+			{
+				//TODO reconstruct path
+			}
+		}
+		return paths;
 	}
 
 	void FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
@@ -238,7 +274,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 #endif
 
 		//FordFuklerson
-		list<Vertex> result = Valkovic::fordFuklerson( centerName, v.first, vertexes );
+		list<list<Vertex>> result = Valkovic::FordFuklerson( centerName, v.first, vertexes );
 
 	}
 }
