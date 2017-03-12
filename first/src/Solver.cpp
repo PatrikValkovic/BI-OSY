@@ -278,8 +278,18 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	//prepare vertexes
 	vector<Edge> edges;
 	unordered_map<string, Vertex> vertexes;
-	for( auto x : param->m_Links )
-		vertexes.insert( pair<string, Vertex>( x.first, Vertex( x.first ) ) );
+	for( CLink& x : param->m_Links )
+	{
+		if( vertexes.find( x.m_From ) == vertexes.end() )
+			vertexes.insert(pair<string,Vertex>(x.m_From,Vertex(x.m_From)));
+		if( vertexes.find( x.m_To ) == vertexes.end() )
+			vertexes.insert( pair<string, Vertex>( x.m_To, Vertex( x.m_To ) ) );
+
+		Edge cur = Edge( x );
+		edges.push_back(cur);
+		vertexes[x.m_From].edges.insert( cur );
+		vertexes[x.m_To].edges.insert( cur );
+	}
 
 	//fill map
 	for( size_t b = 0, e = param->m_Links.size(); b < e; b++ )
