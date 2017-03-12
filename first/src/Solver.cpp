@@ -32,7 +32,7 @@ namespace Valkovic
 			}
 			else //link alredy in flow
 			{
-				if( this->from == from.c_str() ) //already used in same direction
+				if( strcmp( this->from, from.c_str() ) == 0 ) //already used in same direction
 					return false;
 				else //alredy used in oposite directon
 					return true;
@@ -46,6 +46,11 @@ namespace Valkovic
 
 			this->from = this->link->m_From == from ? this->link->m_From.c_str() : this->link->m_To.c_str();
 		}
+
+		bool isUsed( string from )
+		{
+			return this->from != nullptr && strcmp( this->from, from.c_str() ) == 0;
+		}
 	};
 	/*
 	bool operator<( const Edge& first, const Edge& sec )
@@ -57,7 +62,7 @@ namespace Valkovic
 	{
 	public:
 		string name;
-		vector<Edge> edges;
+		vector<Edge*> edges;
 
 		Vertex()
 		{}
@@ -65,15 +70,15 @@ namespace Valkovic
 		Vertex( string name ) : name( name )
 		{}
 
-		Edge getEdge( string to )
+		Edge* getEdge( string to )
 		{
-			for( Edge e : this->edges )
-				if( e.link->m_From == to || e.link->m_To == to )
+			for( Edge* e : this->edges )
+				if( e->link->m_From == to || e->link->m_To == to )
 					return e;
 			throw new exception();
 		}
 	};
-	
+
 	bool operator<( const Vertex& first, const Vertex& sec )
 	{
 		return first.name < sec.name;
@@ -104,10 +109,10 @@ namespace Valkovic
 					continue;
 				proccessed.insert( cur );
 
-				for( auto edge : cur.edges )
-					if( edge.can( cur.name ) )
+				for( Edge* edge : cur.edges )
+					if( edge->can( cur.name ) )
 					{
-						string to = edge.to( cur.name );
+						string to = edge->to( cur.name );
 						toProccess.push( vertexes[to] );
 						toFrom.insert( pair<string, string>( to, cur.name ) );
 					}
@@ -121,8 +126,8 @@ namespace Valkovic
 				do
 				{
 					Vertex from = vertexes[toFrom[to.name]];
-					Edge e = from.getEdge( to.name );
-					e.use( from.name );
+					Edge* e = from.getEdge( to.name );
+					e->use( from.name );
 					to = from;
 				} while( to.name != start );
 			}
@@ -130,7 +135,14 @@ namespace Valkovic
 #ifndef __PROGTEST__
 		cout << "End of FordFuklerson" << endl;
 #endif
-		return 0;
+
+		uint64_t paths = 0;
+		for( Edge* e : begin.edges )
+			if( e->isUsed( start ) )
+				paths++;
+
+		return paths;
+
 	}
 
 	void FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
@@ -276,17 +288,17 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	string centerName = param->m_Center;
 
 	//prepare vertexes
-	vector<Edge> edges;
+	vector<Edge*> edges;
 	unordered_map<string, Vertex> vertexes;
 	for( CLink& x : param->m_Links )
 	{
 		if( vertexes.find( x.m_From ) == vertexes.end() )
-			vertexes.insert(pair<string,Vertex>(x.m_From,Vertex(x.m_From)));
+			vertexes.insert( pair<string, Vertex>( x.m_From, Vertex( x.m_From ) ) );
 		if( vertexes.find( x.m_To ) == vertexes.end() )
 			vertexes.insert( pair<string, Vertex>( x.m_To, Vertex( x.m_To ) ) );
 
-		Edge cur = Edge( x );
-		edges.push_back(cur);
+		Edge* cur = new Edge( x );
+		edges.push_back( cur );
 		vertexes[x.m_From].edges.push_back( cur );
 		vertexes[x.m_To].edges.push_back( cur );
 	}
@@ -297,7 +309,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	{
 		cout << v.first << endl;
 		for( auto e : v.second.edges )
-			cout << "\t - " << e.link->m_From << ":" << e.link->m_To << endl;
+			cout << "\t - " << e->link->m_From << ":" << e->link->m_To << endl;
 	}
 #endif
 
@@ -308,8 +320,8 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 			continue;
 
 		//reset capacity
-		for( Edge& e : edges )
-			e.from = nullptr;
+		for( Edge* e : edges )
+			e->from = nullptr;
 
 #ifndef __PROGTEST__
 		cout << "Running FordFuklerson between " << centerName << " and " << v.first << endl;
@@ -320,8 +332,13 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 		param->m_Redundancy[v.first] = result;
 
 #ifndef __PROGTEST__
-		cout << "Founded " << result << " paths" << endl;
+		cout << "Founded " << result << " paths to " + v.first << endl;
 #endif
+		param->m_Redundancy.insert( pair<string, int>( v.first, (int)result ) );
+
 	}
+
+	for( Edge* e : edges )
+		delete e;
 }
 
