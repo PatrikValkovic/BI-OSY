@@ -1,5 +1,34 @@
 #include "Solver.h"
 
+namespace Valkovic
+{
+	class Edge
+	{
+	public:
+		CLink* link;
+		unsigned char capacity;
+
+		Edge( CLink &l ) : link( &l ), capacity( 1 )
+		{}
+
+		string to( string from )
+		{
+			return link->m_From == from ? link->m_To : link->m_From;
+		}
+	};
+
+	class Vertex
+	{
+	public:
+		string* name;
+		set<Edge> edges;
+
+		Vertex( string& name ) : name( &name )
+		{}
+	};
+}
+
+
 void CSolver::Solve( shared_ptr<CCenter> x )
 {
 	FloydWarshal( x->m_Links, x->m_Center, x->m_Delays, x->m_MaxDelay );
@@ -22,7 +51,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	//fill map
 	for( size_t b = 0, e = param->m_Links.size(); b < e; b++ )
 	{
-		links[param->m_Links[b].m_From].insert(&param->m_Links[b]);
+		links[param->m_Links[b].m_From].insert( &param->m_Links[b] );
 		links[param->m_Links[b].m_To].insert( &param->m_Links[b] );
 	}
 
