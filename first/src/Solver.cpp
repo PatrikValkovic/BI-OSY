@@ -2,13 +2,39 @@
 
 void CSolver::Solve( shared_ptr<CCenter> x )
 {
-	FloydWarshal(x->m_Links,x->m_Center,x->m_Delays,x->m_MaxDelay);
+	FloydWarshal( x->m_Links, x->m_Center, x->m_Delays, x->m_MaxDelay );
 }
 
 
-void CSolver::Solve( shared_ptr<CRedundancy> x )
+void CSolver::Solve( shared_ptr<CRedundancy> param )
 {
+	string nodeName;
+	map<string, double> latencies;
+	double maxLatency;
+	FloydWarshal( param->m_Links, nodeName, latencies, maxLatency );
 
+	//prepare links
+	unordered_map<string, set<CLink*>> links( latencies.size() + 1 );
+	links.insert( pair<string, set<CLink*>>( nodeName, set<CLink*>() ) );
+	for( auto x : latencies )
+		links.insert( pair<string, set<CLink*>>( x.first, set<CLink*>() ) );
+
+	//fill map
+	for( size_t b = 0, e = param->m_Links.size(); b < e; b++ )
+	{
+		links[param->m_Links[b].m_From].insert(&param->m_Links[b]);
+		links[param->m_Links[b].m_To].insert( &param->m_Links[b] );
+	}
+
+#ifndef __PROGTEST__
+	cout << "Links";
+	for( auto v : links )
+	{
+		cout << v.first << endl;
+		for( auto e : v.second )
+			cout << "\t - " << e->m_From << ":" << e->m_To << "  ?  " << e->m_Delay << endl;
+	}
+#endif
 }
 
 void CSolver::FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
