@@ -49,8 +49,8 @@ public:
     string                   m_To;
     double                   m_Delay;
 
-	CLink( const CLink& second ) = delete;
-	CLink( CLink&& second ) = delete;
+	//CLink( const CLink& second ) = delete;
+	//CLink( CLink&& second ) = delete;
 };
 //=================================================================================================
 class CCenter
@@ -84,8 +84,8 @@ public:
     double                   m_MaxDelay;
     map<string,double>       m_Delays;
 
-	CCenter( const CCenter& second ) = delete;
-	CCenter( CCenter&& second ) = delete;
+	//CCenter( const CCenter& second ) = delete;
+	//CCenter( CCenter&& second ) = delete;
 };
 typedef shared_ptr<CCenter> ACenter;
 //=================================================================================================
@@ -120,8 +120,8 @@ public:
     string                   m_Center;
     map<string,int>          m_Redundancy;
 
-	CRedundancy( const CRedundancy& second ) = delete;
-	CRedundancy( CRedundancy&& second ) = delete;
+	//CRedundancy( const CRedundancy& second ) = delete;
+	//CRedundancy( CRedundancy&& second ) = delete;
 };
 typedef shared_ptr<CRedundancy> ARedundancy;
 //=================================================================================================
@@ -141,9 +141,6 @@ public:
     //---------------------------------------------------------------------------------------------
     virtual void             Solved                        ( ACenter           x ) = 0;
     //---------------------------------------------------------------------------------------------
-
-	CCustomer( const CCustomer& second ) = delete;
-	CCustomer( CCustomer&& second ) = delete;
 };
 typedef shared_ptr<CCustomer> ACustomer;
 

@@ -8,8 +8,13 @@ namespace Valkovic
 		CLink* link;
 		unsigned char capacity;
 
-		Edge( CLink &l ) : link( &l ), capacity( 1 )
+		Edge() : link(nullptr), capacity( 1 )
 		{}
+
+		Edge( CLink &l ) : Edge()
+		{
+			this->link = &l;
+		}
 
 		string to( string from )
 		{
@@ -17,15 +22,28 @@ namespace Valkovic
 		}
 	};
 
+	bool operator<( const Edge& first, const Edge& sec )
+	{
+		return first.link->m_From < sec.link->m_From;
+	}
+
 	class Vertex
 	{
 	public:
-		string* name;
+		string name;
 		set<Edge> edges;
 
-		Vertex( string& name ) : name( &name )
+		Vertex()
+		{}
+
+		Vertex( string name ) : name( name )
 		{}
 	};
+
+	bool operator<( const Vertex& first, const Vertex& sec )
+	{
+		return first.name < sec.name;
+	}
 }
 
 
@@ -37,33 +55,58 @@ void CSolver::Solve( shared_ptr<CCenter> x )
 
 void CSolver::Solve( shared_ptr<CRedundancy> param )
 {
-	string nodeName;
+	using Valkovic::Vertex;
+	using Valkovic::Edge;
+
+	//get center
+	string centerName;
 	map<string, double> latencies;
 	double maxLatency;
-	FloydWarshal( param->m_Links, nodeName, latencies, maxLatency );
+	FloydWarshal( param->m_Links, centerName, latencies, maxLatency );
 
-	//prepare links
-	unordered_map<string, set<CLink*>> links( latencies.size() + 1 );
-	links.insert( pair<string, set<CLink*>>( nodeName, set<CLink*>() ) );
+	//prepare vertexes
+	vector<Edge> edges( param->m_Links.size() );
+	unordered_map<string, Vertex> vertexes( latencies.size() + 1 );
+	vertexes.insert( pair<string, Vertex>( centerName, Vertex( centerName ) ) );
 	for( auto x : latencies )
-		links.insert( pair<string, set<CLink*>>( x.first, set<CLink*>() ) );
+		vertexes.insert( pair<string, Vertex>( x.first, Vertex( x.first ) ) );
 
 	//fill map
 	for( size_t b = 0, e = param->m_Links.size(); b < e; b++ )
 	{
-		links[param->m_Links[b].m_From].insert( &param->m_Links[b] );
-		links[param->m_Links[b].m_To].insert( &param->m_Links[b] );
+		Edge cur = Edge( param->m_Links[b] );
+		edges[b] = cur;
+		vertexes[param->m_Links[b].m_From].edges.insert( cur );
+		vertexes[param->m_Links[b].m_To].edges.insert( cur );
 	}
 
 #ifndef __PROGTEST__
 	cout << "Links";
-	for( auto v : links )
+	for( auto v : vertexes )
 	{
 		cout << v.first << endl;
-		for( auto e : v.second )
-			cout << "\t - " << e->m_From << ":" << e->m_To << "  ?  " << e->m_Delay << endl;
+		for( auto e : v.second.edges )
+			cout << "\t - " << e.link->m_From << ":" << e.link->m_To << "  ?  " << e.link->m_Delay << endl;
 	}
 #endif
+
+	//for each vertex except center apply FordFulkerson
+	for( auto v : vertexes )
+	{
+		if( v.first == centerName )
+			continue;
+
+		//reset capacity
+		for( Edge& e : edges )
+			e.capacity = 1;
+
+#ifndef __PROGTEST__
+		cout << "Running FordFuklerson between " << centerName << " and " << v.first << endl;
+#endif
+
+
+
+	}
 }
 
 void CSolver::FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
@@ -74,8 +117,9 @@ void CSolver::FloydWarshal( vector<CLink>& links, string & node, map<string, dou
 
 
 	//fill 2d array
-	for( auto link : links )
+	for( size_t b = 0, e = links.size(); b < e; b++ )
 	{
+		CLink& link = links[b];
 		//add vector if required
 		if( indexes.find( link.m_From ) == indexes.end() )
 		{
