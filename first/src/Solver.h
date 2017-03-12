@@ -7,45 +7,45 @@ class CSolver
 public:
 	static void Solve( shared_ptr<CCenter> x )
 	{
-		int countOfIndexes = 0;
-		map<string, int> indexes;
+		uint64_t countOfIndexes = 0;
+		map<string, uint64_t> indexes;
 		vector<vector<double>> latency;
 
 
 		//fill 2d array
-		for( CLink link : x->m_Links )
+		for( auto link : x->m_Links )
 		{
 			//add vector if required
 			if( indexes.find( link.m_From ) == indexes.end() )
 			{
-				indexes.insert( pair<string, int>( link.m_From, countOfIndexes ) );
+				indexes.insert( pair<string, uint64_t>( link.m_From, countOfIndexes ) );
 				latency.push_back( vector<double>() );
 				countOfIndexes++;
 			}
 			if( indexes.find( link.m_To ) == indexes.end() )
 			{
-				indexes.insert( pair<string, int>( link.m_To, countOfIndexes ) );
+				indexes.insert( pair<string, uint64_t>( link.m_To, countOfIndexes ) );
 				latency.push_back( vector<double>() );
 				countOfIndexes++;
 			}
 			//get indexes
-			int indexFrom = indexes[link.m_From];
-			int indexTo = indexes[link.m_To];
+			uint64_t indexFrom = indexes[link.m_From];
+			uint64_t indexTo = indexes[link.m_To];
 			//resize vectors if required
-			if( (int)latency[indexFrom].size() <= indexTo )
+			if( latency[indexFrom].size() <= indexTo )
 			{
-				int oldSize = latency[indexFrom].size();
-				int inserted = countOfIndexes - oldSize;
+				size_t oldSize = latency[indexFrom].size();
+				size_t inserted = countOfIndexes - oldSize;
 				latency[indexFrom].resize( countOfIndexes );
-				for( int i = 0; i < inserted; i++ )
+				for( size_t i = 0; i < inserted; i++ )
 					latency[indexFrom][oldSize + i] = numeric_limits<double>::max();
 			}
-			if( (int)latency[indexTo].size() <= indexFrom )
+			if( latency[indexTo].size() <= indexFrom )
 			{
-				int oldSize = latency[indexTo].size();
-				int inserted = countOfIndexes - oldSize;
+				size_t oldSize = latency[indexTo].size();
+				size_t inserted = countOfIndexes - oldSize;
 				latency[indexTo].resize( countOfIndexes );
-				for( int i = 0; i < inserted; i++ )
+				for( size_t i = 0; i < inserted; i++ )
 					latency[indexTo][oldSize + i] = numeric_limits<double>::max();
 			}
 			if( latency[indexFrom][indexTo] > link.m_Delay )
@@ -55,11 +55,11 @@ public:
 		}
 
 		//resize vectors
-		for( int i = 0; i < countOfIndexes; i++ )
+		for( uint64_t i = 0; i < countOfIndexes; i++ )
 		{
-			unsigned int oldSize = latency[i].size();
-			latency[i].resize( countOfIndexes - 1 );
-			for(int j=0,set=countOfIndexes - oldSize;j < set; j++ )
+			size_t oldSize = latency[i].size();
+			latency[i].resize( countOfIndexes );
+			for( uint64_t j = 0, set = countOfIndexes - oldSize; j < set; j++ )
 				latency[i][oldSize + j] = numeric_limits<double>::max();
 			latency[i][i] = 0;
 		}
@@ -70,33 +70,33 @@ public:
 			cout << v.first << " : " << v.second << endl;
 		cout << endl << "Before floyd" << endl;
 
-		for( int i = 0; i < countOfIndexes; i++, cout << endl )
-			for( int j = 0; j < countOfIndexes; j++ )
+		for( uint64_t i = 0; i < countOfIndexes; i++, cout << endl )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
 				cout << latency[i][j] << " ";
 #endif
 
 
 		//FloydWarshal
-		for( int i = 0; i < countOfIndexes; i++ )
-			for( int j = 0; j < countOfIndexes; j++ )
-				for( int k = 0; k < countOfIndexes; k++ )
+		for( uint64_t i = 0; i < countOfIndexes; i++ )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
+				for( uint64_t k = 0; k < countOfIndexes; k++ )
 					if( latency[j][k] > latency[j][i] + latency[i][k] )
 						latency[j][k] = latency[j][i] + latency[i][k];
 
 #ifndef __PROGTEST__
 		cout << endl << "After floyd" << endl;
-		for( int i = 0; i < countOfIndexes; i++, cout << endl )
-			for( int j = 0; j < countOfIndexes; j++ )
+		for( uint64_t i = 0; i < countOfIndexes; i++, cout << endl )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
 				cout << latency[i][j] << " ";
 #endif
 
 		//find lowest
 		double lowestNumber = numeric_limits<double>::max();
-		int index = -1;
-		for( int i = 0; i < countOfIndexes; i++ )
+		uint64_t index = -1;
+		for( uint64_t i = 0; i < countOfIndexes; i++ )
 		{
 			double max = numeric_limits<double>::min();
-			for( int j = 0; j < countOfIndexes; j++ )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
 				if( latency[i][j] > max )
 					max = latency[i][j];
 			if( max < lowestNumber )
@@ -118,7 +118,7 @@ public:
 			}
 			else
 			{
-				x->m_Delays.insert(pair<string,double>(c.first,latency[index][c.second]));
+				x->m_Delays.insert( pair<string, double>( c.first, latency[index][c.second] ) );
 			}
 		x->m_MaxDelay = lowestNumber;
 

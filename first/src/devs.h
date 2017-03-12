@@ -18,8 +18,8 @@
 #include <queue>
 #include <stack>
 #include <algorithm>
-#include <pthread.h>
-#include <semaphore.h>
+//#include <pthread.h>
+//#include <semaphore.h>
 #include <stdint.h>
 #include <array>
 #include <unordered_map>
