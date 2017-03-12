@@ -6,9 +6,9 @@ namespace Valkovic
 	{
 	public:
 		CLink* link;
-		unsigned char capacity;
+		const char* from;
 
-		Edge() : link( nullptr ), capacity( 1 )
+		Edge() : link( nullptr ), from( nullptr )
 		{}
 
 		Edge( CLink &l ) : Edge()
@@ -19,6 +19,32 @@ namespace Valkovic
 		string to( string from )
 		{
 			return link->m_From == from ? link->m_To : link->m_From;
+		}
+
+		bool can( string from )
+		{
+			if( link->m_From != from && link->m_To != from ) //node not used
+				return false;
+
+			if( this->from == nullptr ) //link is not in flow
+			{
+				return true; //can be used in all situtations
+			}
+			else //link alredy in flow
+			{
+				if( this->from == from.c_str() ) //already used in same direction
+					return false;
+				else //alredy used in oposite directon
+					return true;
+			}
+		}
+
+		void use( string from )
+		{
+			if( !can( from ) )
+				throw new exception();
+
+			this->from = this->link->m_From == from ? this->link->m_From.c_str() : this->link->m_To.c_str();
 		}
 	};
 
@@ -38,6 +64,14 @@ namespace Valkovic
 
 		Vertex( string name ) : name( name )
 		{}
+
+		Edge getEdge( string to )
+		{
+			for( Edge e : this->edges )
+				if( e.link->m_From == to || e.link->m_To == to )
+					return e;
+			throw new exception();
+		}
 	};
 
 	bool operator<( const Vertex& first, const Vertex& sec )
@@ -51,18 +85,16 @@ namespace Valkovic
 		Vertex begin = vertexes[start];
 		Vertex finish = vertexes[end];
 
-		list<list<Vertex>> paths;
-
 		while( true )
 		{
-			queue<Vertex> toProccess;
+			stack<Vertex> toProccess;
 			set<Vertex> proccessed;
 			map<string, string> toFrom;
-			//BFS
+			//DFS
 			toProccess.push( begin );
 			while( !toProccess.empty() )
 			{
-				Vertex cur = toProccess.front();
+				Vertex cur = toProccess.top();
 
 				if( cur.name == finish.name )
 					break;
@@ -73,25 +105,31 @@ namespace Valkovic
 				proccessed.insert( cur );
 
 				for( auto edge : cur.edges )
-					if( edge.capacity == 1 )
+					if( edge.can( cur.name ) )
 					{
-						string to = edge.to(cur.name);
+						string to = edge.to( cur.name );
 						toProccess.push( vertexes[to] );
-						toFrom.insert(pair<string,string>(to,cur.name));
+						toFrom.insert( pair<string, string>( to, cur.name ) );
 					}
 			}
-
-			if( toFrom.find(finish.name) == toFrom.end())
+			//reconstruct path
+			if( toFrom.find( finish.name ) == toFrom.end() )
 				break;
 			else
 			{
-				list<Vertex> newPath;
-				newPath.push_back( finish.name );
-				while( newPath.back().name != start )
-					newPath.push_back(toFrom[newPath.back().name]);
-				paths.push_back( newPath );
+				Vertex to = finish;
+				do
+				{
+					Vertex from = toFrom[to.name];
+					Edge e = from.getEdge( to.name );
+					e.use( from.name );
+					to = from;
+				} while( to.name != start );
 			}
 		}
+#ifndef __PROGTEST__
+		cout << "End of FordFuklerson" << endl;
+#endif
 		return 0;
 	}
 
@@ -235,16 +273,12 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	using Valkovic::Edge;
 
 	//get center
-	string centerName;
-	map<string, double> latencies;
-	double maxLatency;
-	Valkovic::FloydWarshal( param->m_Links, centerName, latencies, maxLatency );
+	string centerName = param->m_Center;
 
 	//prepare vertexes
-	vector<Edge> edges( param->m_Links.size() );
-	unordered_map<string, Vertex> vertexes( latencies.size() + 1 );
-	vertexes.insert( pair<string, Vertex>( centerName, Vertex( centerName ) ) );
-	for( auto x : latencies )
+	vector<Edge> edges;
+	unordered_map<string, Vertex> vertexes;
+	for( auto x : param->m_Links )
 		vertexes.insert( pair<string, Vertex>( x.first, Vertex( x.first ) ) );
 
 	//fill map
@@ -274,7 +308,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 		//reset capacity
 		for( Edge& e : edges )
-			e.capacity = 1;
+			e.from = nullptr;
 
 #ifndef __PROGTEST__
 		cout << "Running FordFuklerson between " << centerName << " and " << v.first << endl;
