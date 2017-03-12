@@ -2,6 +2,8 @@
 
 namespace Valkovic
 {
+	class MyException {};
+
 	class Edge
 	{
 	public:
@@ -42,7 +44,7 @@ namespace Valkovic
 		void use( string from )
 		{
 			if( !can( from ) )
-				throw new exception();
+				throw new MyException();
 
 			this->from = this->link->m_From == from ? this->link->m_From.c_str() : this->link->m_To.c_str();
 		}
@@ -74,8 +76,9 @@ namespace Valkovic
 		{
 			for( Edge* e : this->edges )
 				if( e->link->m_From == to || e->link->m_To == to )
-					return e;
-			throw new exception();
+					if( e->can( this->name ) )
+						return e;
+			throw new MyException();
 		}
 	};
 
