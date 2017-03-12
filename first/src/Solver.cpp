@@ -46,7 +46,7 @@ namespace Valkovic
 	}
 
 
-	list<list<Vertex>> FordFuklerson( const string& start, const string& end, unordered_map<string, Vertex>& vertexes )
+	uint64_t FordFuklerson( const string& start, const string& end, unordered_map<string, Vertex>& vertexes )
 	{
 		Vertex begin = vertexes[start];
 		Vertex finish = vertexes[end];
@@ -55,11 +55,11 @@ namespace Valkovic
 
 		while( true )
 		{
-			list<Vertex> newPath;
 			queue<Vertex> toProccess;
 			set<Vertex> proccessed;
-			Vertex lastProccessed;
+			map<string, string> toFrom;
 			//BFS
+			toProccess.push( begin );
 			while( !toProccess.empty() )
 			{
 				Vertex cur = toProccess.front();
@@ -71,21 +71,28 @@ namespace Valkovic
 				if( proccessed.find( cur ) != proccessed.end() )
 					continue;
 				proccessed.insert( cur );
-				lastProccessed = cur;
 
 				for( auto edge : cur.edges )
 					if( edge.capacity == 1 )
-						toProccess.push( vertexes[edge.to( cur.name )] );
+					{
+						string to = edge.to(cur.name);
+						toProccess.push( vertexes[to] );
+						toFrom.insert(pair<string,string>(to,cur.name));
+					}
 			}
 
-			if( lastProccessed.name != finish.name )
+			if( toFrom.find(finish.name) == toFrom.end())
 				break;
 			else
 			{
-				//TODO reconstruct path
+				list<Vertex> newPath;
+				newPath.push_back( finish.name );
+				while( newPath.back().name != start )
+					newPath.push_back(toFrom[newPath.back().name]);
+				paths.push_back( newPath );
 			}
 		}
-		return paths;
+		return 0;
 	}
 
 	void FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
@@ -274,8 +281,12 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 #endif
 
 		//FordFuklerson
-		list<list<Vertex>> result = Valkovic::FordFuklerson( centerName, v.first, vertexes );
+		uint64_t result = Valkovic::FordFuklerson( centerName, v.first, vertexes );
+		param->m_Redundancy[v.first] = result;
 
+#ifndef __PROGTEST__
+		cout << "Founded " << result << " paths" << endl;
+#endif
 	}
 }
 
