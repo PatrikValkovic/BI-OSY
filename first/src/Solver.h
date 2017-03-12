@@ -23,7 +23,4 @@ public:
 
 	void AddCustomer( ACustomer c )
 	{}
-
-private:
-	static void FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency );
 };

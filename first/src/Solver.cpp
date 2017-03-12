@@ -8,7 +8,7 @@ namespace Valkovic
 		CLink* link;
 		unsigned char capacity;
 
-		Edge() : link(nullptr), capacity( 1 )
+		Edge() : link( nullptr ), capacity( 1 )
 		{}
 
 		Edge( CLink &l ) : Edge()
@@ -44,12 +44,145 @@ namespace Valkovic
 	{
 		return first.name < sec.name;
 	}
+
+
+	list<Vertex> fordFuklerson( const string& start, const string& end, unordered_map<string, Vertex>& vertexes )
+	{
+		//TODO 
+		return list<Vertex> {vertexes[start], vertexes[end]};
+	}
+
+	void FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
+	{
+		uint64_t countOfIndexes = 0;
+		map<string, uint64_t> indexes;
+		vector<vector<double>> latency;
+
+
+		//fill 2d array
+		for( size_t b = 0, e = links.size(); b < e; b++ )
+		{
+			CLink& link = links[b];
+			//add vector if required
+			if( indexes.find( link.m_From ) == indexes.end() )
+			{
+				indexes.insert( pair<string, uint64_t>( link.m_From, countOfIndexes ) );
+				latency.push_back( vector<double>() );
+				countOfIndexes++;
+			}
+			if( indexes.find( link.m_To ) == indexes.end() )
+			{
+				indexes.insert( pair<string, uint64_t>( link.m_To, countOfIndexes ) );
+				latency.push_back( vector<double>() );
+				countOfIndexes++;
+			}
+			//get indexes
+			uint64_t indexFrom = indexes[link.m_From];
+			uint64_t indexTo = indexes[link.m_To];
+			//resize vectors if required
+			if( latency[indexFrom].size() <= indexTo )
+			{
+				size_t oldSize = latency[indexFrom].size();
+				size_t inserted = countOfIndexes - oldSize;
+				latency[indexFrom].resize( countOfIndexes );
+				for( size_t i = 0; i < inserted; i++ )
+					latency[indexFrom][oldSize + i] = numeric_limits<double>::max();
+			}
+			if( latency[indexTo].size() <= indexFrom )
+			{
+				size_t oldSize = latency[indexTo].size();
+				size_t inserted = countOfIndexes - oldSize;
+				latency[indexTo].resize( countOfIndexes );
+				for( size_t i = 0; i < inserted; i++ )
+					latency[indexTo][oldSize + i] = numeric_limits<double>::max();
+			}
+			if( latency[indexFrom][indexTo] > link.m_Delay )
+				latency[indexFrom][indexTo] = link.m_Delay;
+			if( latency[indexTo][indexFrom] > link.m_Delay )
+				latency[indexTo][indexFrom] = link.m_Delay;
+		}
+
+		//resize vectors
+		for( uint64_t i = 0; i < countOfIndexes; i++ )
+		{
+			size_t oldSize = latency[i].size();
+			latency[i].resize( countOfIndexes );
+			for( uint64_t j = 0, set = countOfIndexes - oldSize; j < set; j++ )
+				latency[i][oldSize + j] = numeric_limits<double>::max();
+			latency[i][i] = 0;
+		}
+
+#ifndef __PROGTEST__
+		cout << "Vertex" << endl;
+		for( auto v : indexes )
+			cout << v.first << " : " << v.second << endl;
+		cout << endl << "Before floyd" << endl;
+
+		for( uint64_t i = 0; i < countOfIndexes; i++, cout << endl )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
+				cout << latency[i][j] << " ";
+#endif
+
+
+		//FloydWarshal
+		for( uint64_t i = 0; i < countOfIndexes; i++ )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
+				for( uint64_t k = 0; k < countOfIndexes; k++ )
+					if( latency[j][k] > latency[j][i] + latency[i][k] )
+						latency[j][k] = latency[j][i] + latency[i][k];
+
+#ifndef __PROGTEST__
+		cout << endl << "After floyd" << endl;
+		for( uint64_t i = 0; i < countOfIndexes; i++, cout << endl )
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
+				cout << latency[i][j] << " ";
+#endif
+
+		//find lowest
+		double lowestNumber = numeric_limits<double>::max();
+		uint64_t index = -1;
+		for( uint64_t i = 0; i < countOfIndexes; i++ )
+		{
+			double max = numeric_limits<double>::min();
+			for( uint64_t j = 0; j < countOfIndexes; j++ )
+				if( latency[i][j] > max )
+					max = latency[i][j];
+			if( max < lowestNumber )
+			{
+				lowestNumber = max;
+				index = i;
+			}
+		}
+
+#ifndef __PROGTEST__
+		cout << "Nejmensi index " << index << endl;
+#endif
+
+		//fil info
+		for( auto c : indexes )
+			if( c.second == index )
+			{
+				node = c.first;
+			}
+			else
+			{
+				latencies.insert( pair<string, double>( c.first, latency[index][c.second] ) );
+			}
+		maxLatency = lowestNumber;
+
+#ifndef __PROGTEST__
+		cout << "Nejmensi node " << node << " s delay " << maxLatency << endl << endl << endl << endl;
+#endif
+
+		return;
+	}
+
 }
 
 
 void CSolver::Solve( shared_ptr<CCenter> x )
 {
-	FloydWarshal( x->m_Links, x->m_Center, x->m_Delays, x->m_MaxDelay );
+	Valkovic::FloydWarshal( x->m_Links, x->m_Center, x->m_Delays, x->m_MaxDelay );
 }
 
 
@@ -62,7 +195,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	string centerName;
 	map<string, double> latencies;
 	double maxLatency;
-	FloydWarshal( param->m_Links, centerName, latencies, maxLatency );
+	Valkovic::FloydWarshal( param->m_Links, centerName, latencies, maxLatency );
 
 	//prepare vertexes
 	vector<Edge> edges( param->m_Links.size() );
@@ -104,132 +237,9 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 		cout << "Running FordFuklerson between " << centerName << " and " << v.first << endl;
 #endif
 
-
+		//FordFuklerson
+		list<Vertex> result = Valkovic::fordFuklerson( centerName, v.first, vertexes );
 
 	}
 }
 
-void CSolver::FloydWarshal( vector<CLink>& links, string & node, map<string, double> &latencies, double &maxLatency )
-{
-	uint64_t countOfIndexes = 0;
-	map<string, uint64_t> indexes;
-	vector<vector<double>> latency;
-
-
-	//fill 2d array
-	for( size_t b = 0, e = links.size(); b < e; b++ )
-	{
-		CLink& link = links[b];
-		//add vector if required
-		if( indexes.find( link.m_From ) == indexes.end() )
-		{
-			indexes.insert( pair<string, uint64_t>( link.m_From, countOfIndexes ) );
-			latency.push_back( vector<double>() );
-			countOfIndexes++;
-		}
-		if( indexes.find( link.m_To ) == indexes.end() )
-		{
-			indexes.insert( pair<string, uint64_t>( link.m_To, countOfIndexes ) );
-			latency.push_back( vector<double>() );
-			countOfIndexes++;
-		}
-		//get indexes
-		uint64_t indexFrom = indexes[link.m_From];
-		uint64_t indexTo = indexes[link.m_To];
-		//resize vectors if required
-		if( latency[indexFrom].size() <= indexTo )
-		{
-			size_t oldSize = latency[indexFrom].size();
-			size_t inserted = countOfIndexes - oldSize;
-			latency[indexFrom].resize( countOfIndexes );
-			for( size_t i = 0; i < inserted; i++ )
-				latency[indexFrom][oldSize + i] = numeric_limits<double>::max();
-		}
-		if( latency[indexTo].size() <= indexFrom )
-		{
-			size_t oldSize = latency[indexTo].size();
-			size_t inserted = countOfIndexes - oldSize;
-			latency[indexTo].resize( countOfIndexes );
-			for( size_t i = 0; i < inserted; i++ )
-				latency[indexTo][oldSize + i] = numeric_limits<double>::max();
-		}
-		if( latency[indexFrom][indexTo] > link.m_Delay )
-			latency[indexFrom][indexTo] = link.m_Delay;
-		if( latency[indexTo][indexFrom] > link.m_Delay )
-			latency[indexTo][indexFrom] = link.m_Delay;
-	}
-
-	//resize vectors
-	for( uint64_t i = 0; i < countOfIndexes; i++ )
-	{
-		size_t oldSize = latency[i].size();
-		latency[i].resize( countOfIndexes );
-		for( uint64_t j = 0, set = countOfIndexes - oldSize; j < set; j++ )
-			latency[i][oldSize + j] = numeric_limits<double>::max();
-		latency[i][i] = 0;
-	}
-
-#ifndef __PROGTEST__
-	cout << "Vertex" << endl;
-	for( auto v : indexes )
-		cout << v.first << " : " << v.second << endl;
-	cout << endl << "Before floyd" << endl;
-
-	for( uint64_t i = 0; i < countOfIndexes; i++, cout << endl )
-		for( uint64_t j = 0; j < countOfIndexes; j++ )
-			cout << latency[i][j] << " ";
-#endif
-
-
-	//FloydWarshal
-	for( uint64_t i = 0; i < countOfIndexes; i++ )
-		for( uint64_t j = 0; j < countOfIndexes; j++ )
-			for( uint64_t k = 0; k < countOfIndexes; k++ )
-				if( latency[j][k] > latency[j][i] + latency[i][k] )
-					latency[j][k] = latency[j][i] + latency[i][k];
-
-#ifndef __PROGTEST__
-	cout << endl << "After floyd" << endl;
-	for( uint64_t i = 0; i < countOfIndexes; i++, cout << endl )
-		for( uint64_t j = 0; j < countOfIndexes; j++ )
-			cout << latency[i][j] << " ";
-#endif
-
-	//find lowest
-	double lowestNumber = numeric_limits<double>::max();
-	uint64_t index = -1;
-	for( uint64_t i = 0; i < countOfIndexes; i++ )
-	{
-		double max = numeric_limits<double>::min();
-		for( uint64_t j = 0; j < countOfIndexes; j++ )
-			if( latency[i][j] > max )
-				max = latency[i][j];
-		if( max < lowestNumber )
-		{
-			lowestNumber = max;
-			index = i;
-		}
-	}
-
-#ifndef __PROGTEST__
-	cout << "Nejmensi index " << index << endl;
-#endif
-
-	//fil info
-	for( auto c : indexes )
-		if( c.second == index )
-		{
-			node = c.first;
-		}
-		else
-		{
-			latencies.insert( pair<string, double>( c.first, latency[index][c.second] ) );
-		}
-	maxLatency = lowestNumber;
-
-#ifndef __PROGTEST__
-	cout << "Nejmensi node " << node << " s delay " << maxLatency << endl << endl << endl << endl;
-#endif
-
-	return;
-}
