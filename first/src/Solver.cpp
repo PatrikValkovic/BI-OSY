@@ -120,7 +120,7 @@ namespace Valkovic
 				Vertex to = finish;
 				do
 				{
-					Vertex from = toFrom[to.name];
+					Vertex from = vertexes[toFrom[to.name]];
 					Edge e = from.getEdge( to.name );
 					e.use( from.name );
 					to = from;
