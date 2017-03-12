@@ -47,17 +47,17 @@ namespace Valkovic
 			this->from = this->link->m_From == from ? this->link->m_From.c_str() : this->link->m_To.c_str();
 		}
 	};
-
+	/*
 	bool operator<( const Edge& first, const Edge& sec )
 	{
-		return first.link->m_From < sec.link->m_From;
-	}
+		return first.link->m_From < sec.link->m_From && first.link->m_To < sec.link->m_To;
+	}*/
 
 	class Vertex
 	{
 	public:
 		string name;
-		set<Edge> edges;
+		vector<Edge> edges;
 
 		Vertex()
 		{}
@@ -73,7 +73,7 @@ namespace Valkovic
 			throw new exception();
 		}
 	};
-
+	
 	bool operator<( const Vertex& first, const Vertex& sec )
 	{
 		return first.name < sec.name;
@@ -287,26 +287,17 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 		Edge cur = Edge( x );
 		edges.push_back(cur);
-		vertexes[x.m_From].edges.insert( cur );
-		vertexes[x.m_To].edges.insert( cur );
-	}
-
-	//fill map
-	for( size_t b = 0, e = param->m_Links.size(); b < e; b++ )
-	{
-		Edge cur = Edge( param->m_Links[b] );
-		edges[b] = cur;
-		vertexes[param->m_Links[b].m_From].edges.insert( cur );
-		vertexes[param->m_Links[b].m_To].edges.insert( cur );
+		vertexes[x.m_From].edges.push_back( cur );
+		vertexes[x.m_To].edges.push_back( cur );
 	}
 
 #ifndef __PROGTEST__
-	cout << "Links";
+	cout << "Links" << endl;
 	for( auto v : vertexes )
 	{
 		cout << v.first << endl;
 		for( auto e : v.second.edges )
-			cout << "\t - " << e.link->m_From << ":" << e.link->m_To << "  ?  " << e.link->m_Delay << endl;
+			cout << "\t - " << e.link->m_From << ":" << e.link->m_To << endl;
 	}
 #endif
 
