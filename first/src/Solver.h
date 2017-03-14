@@ -23,11 +23,12 @@ public:
 private:
 	bool stoped;
 	vector<thread*>* threads = nullptr;
+	vector<thread*> clientsThreads;
 
-	static void WorkingThreadFn( void* data );
+	static void WorkingThreadFn( CSolver* data );
 
-	static void ClientCenterFn( void* data );
-	static void ClientRedundancyFn( void* data );
+	static void ClientCenterFn( CSolver* data, shared_ptr<CCustomer> problem );
+	static void ClientRedundancyFn( CSolver* data, shared_ptr<CCustomer> problem );
 };
 
 namespace Valkovic
@@ -421,7 +422,7 @@ void CSolver::Start( int threadCount )
 
 	this->threads = new vector<thread*>( threadCount );
 	for( int i = 0; i < threadCount; i++ )
-		( *this->threads )[i] = new thread( WorkingThreadFn, ( void* )this );
+		( *this->threads )[i] = new thread( WorkingThreadFn, this );
 }
 
 void CSolver::Stop( void )
@@ -435,21 +436,38 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 {
 	if( this->stoped )
 		return;
+
+	clientsThreads.push_back( new thread( ClientCenterFn, this, c ) );
+	clientsThreads.push_back( new thread( ClientRedundancyFn, this, c ) );
 }
 
-void CSolver::WorkingThreadFn( void* data )
+void CSolver::WorkingThreadFn( CSolver* data )
 {
 	CSolver* solver = (CSolver*)data;
 }
 
-void CSolver::ClientCenterFn( void * data )
+void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> problem )
 {
-
+	shared_ptr<CCenter> instance;
+	while( instance = problem->GenCenter() )
+	{
+#ifdef __VALKOVIC__
+		cout << "Next problem of center arrive" << endl;
+#endif
+		//TODO do something
+	}
 }
 
-void CSolver::ClientRedundancyFn( void * data )
+void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> problem )
 {
-
+	shared_ptr<CRedundancy> instance;
+	while( instance = problem->GenRedundancy() )
+	{
+#ifdef __VALKOVIC__
+		cout << "Next problem of redundancy arrive" << endl;
+#endif
+		//TODO do something
+	}
 }
 
 CSolver::CSolver( void )
