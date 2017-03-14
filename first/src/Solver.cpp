@@ -34,7 +34,7 @@ namespace Valkovic
 				throw new MyException();
 #endif
 
-			return this->from == UINT_MAX || this->from != from;
+			return this->realFrom == UINT_MAX || this->realFrom != from;
 
 			/*
 			if( this->from == UINT_MAX ) //link is not in flow
@@ -57,7 +57,7 @@ namespace Valkovic
 				throw new MyException();
 #endif
 
-			this->from = from;
+			this->realFrom = from;
 		}
 	};
 
@@ -138,13 +138,13 @@ namespace Valkovic
 			else
 			{
 				unsigned int to = end->index;
-				do
+				while( to != begin->index )
 				{
 					unsigned int from = fromTo[to];
 					Edge* e = allVertex[from]->getEdge( to );
 					e->Use( from );
 					to = from;
-				} while( to != end->index );
+				}
 			}
 		}
 #ifndef __PROGTEST__
@@ -362,7 +362,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 		//reset capacity
 		for( Edge* e : edges )
-			e->from = UINT_MAX;
+			e->realFrom = UINT_MAX;
 
 #ifndef __PROGTEST__
 		cout << "Running FordFuklerson between " << centerName << " and " << indexToName[v->index] << endl;
