@@ -79,7 +79,7 @@ namespace Valkovic
 		Vertex( unsigned int index ) : index( index )
 		{}
 
-		Edge* getEdge( int to )
+		Edge* getEdge( unsigned int to )
 		{
 			for( Edge* e : this->edges[to] )
 				if( e->from == to || e->to == to )
@@ -346,7 +346,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 	{
 		cout << v->index << endl;
 		for( pair<int, vector<Edge*>> e : v->edges )
-			cout << "\t - " << e.first << ":" << e.second.size << endl;
+			cout << "\t - " << e.first << ":" << e.second.size() << endl;
 	}
 #endif
 
