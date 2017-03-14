@@ -22,6 +22,12 @@ public:
 
 private:
 	bool stoped;
+	vector<thread*>* threads = nullptr;
+
+	static void WorkingThreadFn( void* data );
+
+	static void ClientCenterFn( void* data );
+	static void ClientRedundancyFn( void* data );
 };
 
 namespace Valkovic
@@ -412,21 +418,42 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 void CSolver::Start( int threadCount )
 {
 	stoped = false;
+
+	this->threads = new vector<thread*>( threadCount );
+	for( int i = 0; i < threadCount; i++ )
+		( *this->threads )[i] = new thread( WorkingThreadFn, ( void* )this );
 }
 
 void CSolver::Stop( void )
 {
+	for( thread* t : *threads )
+		delete t;
 	stoped = true;
 }
 
 void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 {
+	if( this->stoped )
+		return;
 }
 
-CSolver::CSolver( void )
+void CSolver::WorkingThreadFn( void* data )
+{
+	CSolver* solver = (CSolver*)data;
+}
+
+void CSolver::ClientCenterFn( void * data )
 {
 
 }
+
+void CSolver::ClientRedundancyFn( void * data )
+{
+
+}
+
+CSolver::CSolver( void )
+{}
 
 CSolver::~CSolver( void )
 {
