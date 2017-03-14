@@ -10,18 +10,18 @@ public:
 
 	static void Solve( shared_ptr<CRedundancy> x );
 
-	CSolver( void )
-	{}
+	CSolver( void );
 
-	~CSolver( void )
-	{}
+	~CSolver( void );
 
 	void Start( int thrCnt );
 
 	void Stop( void );
 
-	void AddCustomer( ACustomer c )
-	{}
+	void AddCustomer( ACustomer c );
+
+private:
+	bool stoped;
 };
 
 namespace Valkovic
@@ -411,15 +411,25 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 void CSolver::Start( int threadCount )
 {
-
+	stoped = false;
 }
 
 void CSolver::Stop( void )
 {
-
+	stoped = true;
 }
 
 void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 {
+}
 
+CSolver::CSolver( void )
+{
+
+}
+
+CSolver::~CSolver( void )
+{
+	if( !this->stoped )
+		this->Stop();
 }
