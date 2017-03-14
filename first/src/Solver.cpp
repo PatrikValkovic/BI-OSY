@@ -95,51 +95,56 @@ namespace Valkovic
 	}
 
 
-	uint64_t FordFuklerson( const string& start, const string& end, unordered_map<string, Vertex>& vertexes )
+	uint64_t FordFuklerson( Vertex* begin, Vertex* end, vector<Vertex*> &allVertex )
 	{
-		Vertex begin = vertexes[start];
-		Vertex finish = vertexes[end];
-
 		while( true )
 		{
-			stack<Vertex> toProccess;
-			set<Vertex> proccessed;
-			map<string, string> toFrom;
+			stack<unsigned int> toProccess;
+			vector<bool> proccessed( allVertex.size(), false );
+			vector<unsigned int> fromTo( allVertex.size(), UINT_MAX );
 			//DFS
-			toProccess.push( begin );
+			toProccess.push( begin->index );
 			while( !toProccess.empty() )
 			{
-				Vertex cur = toProccess.top();
+				Vertex* cur = allVertex[toProccess.top()];
 
-				if( cur.name == finish.name )
+				if( cur->index == end->index )
 					break;
 
 				toProccess.pop();
-				if( proccessed.find( cur ) != proccessed.end() )
-					continue;
-				proccessed.insert( cur );
 
-				for( Edge* edge : cur.edges )
-					if( edge->can( cur.name ) )
+				if( proccessed[cur->index] )
+					continue;
+				proccessed[cur->index] = true;
+
+				for( pair<unsigned int, vector<Edge*>> edge : cur->edges )
+				{
+					if( proccessed[edge.first] )
+						continue;
+					for( Edge* e : edge.second )
 					{
-						string to = edge->to( cur.name );
-						toProccess.push( vertexes[to] );
-						toFrom.insert( pair<string, string>( to, cur.name ) );
+						if( e->Can( cur->index ) )
+						{
+							unsigned int to = e->To( cur->index );
+							toProccess.push( to );
+							fromTo[to] = cur->index;
+						}
 					}
+				}
 			}
 			//reconstruct path
-			if( toFrom.find( finish.name ) == toFrom.end() )
+			if( fromTo[end->index] == UINT_MAX )
 				break;
 			else
 			{
-				Vertex to = finish;
+				unsigned int to = end->index;
 				do
 				{
-					Vertex from = vertexes[toFrom[to.name]];
-					Edge* e = from.getEdge( to.name );
-					e->use( from.name );
+					unsigned int from = fromTo[to];
+					Edge* e = allVertex[from]->getEdge( to );
+					e->Use( from );
 					to = from;
-				} while( to.name != start );
+				} while( to != end->index );
 			}
 		}
 #ifndef __PROGTEST__
@@ -147,9 +152,10 @@ namespace Valkovic
 #endif
 
 		uint64_t paths = 0;
-		for( Edge* e : begin.edges )
-			if( e->isUsed( start ) )
-				paths++;
+		for( pair<int, vector<Edge*>> edges : begin->edges )
+			for( Edge* edge : edges.second )
+				if( edge->realFrom == begin->index )
+					paths++;
 
 		return paths;
 
@@ -346,6 +352,7 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 	//find center index
 	unsigned int centerIndex = nameToIndex[centerName];
+	Vertex* centerVertex = vertexes[centerIndex];
 
 	//for each vertex except center apply FordFulkerson
 	for( Vertex* v : vertexes )
@@ -362,14 +369,12 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 #endif
 
 		//FordFuklerson
-		uint64_t result = Valkovic::FordFuklerson( centerName, v.first, vertexes );
-		param->m_Redundancy[v.first] = result;
+		uint64_t result = Valkovic::FordFuklerson( centerVertex, v, vertexes );
 
 #ifndef __PROGTEST__
 		cout << "Founded " << result << " paths to " << indexToName[v->index] << endl;
 #endif
-		param->m_Redundancy.
-			insert( pair<string, int>( indexToName[v->index], (int)result ) );
+		param->m_Redundancy.insert( pair<string, int>( indexToName[v->index], (int)result ) );
 
 	}
 
