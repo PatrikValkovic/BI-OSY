@@ -478,9 +478,52 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 
 void CSolver::WorkingThreadFn( CSolver* data )
 {
+	using Valkovic::RedundancyData;
+	using Valkovic::CenterData;
+
+	RedundancyData redProblem;
+	CenterData centerProblem;
+	bool loadedRedundancy;
+	bool loadedCenter;
+
+	shared_ptr<CCenter> centerProblem;
 	while( true ) //TODO add end condition
 	{
-
+		//try to get redundancy problem
+		loadedRedundancy = false;
+		data->redundancyMutex.lock();
+		if( data->redundancy.size() > 0 )
+		{
+			redProblem = data->redundancy.front();
+			data->redundancy.pop();
+			loadedRedundancy = true;
+		}
+		data->redundancyMutex.unlock();
+		if( loadedRedundancy )
+		{
+			Solve( redProblem.problem );
+			redProblem.customer->Solved( redProblem.problem );
+		}
+		else
+		{
+			loadedCenter = false;
+			//try to gen center problem
+			data->centerMutex.lock();
+			if( data->center.size() > 0 )
+			{
+				centerProblem = data->center.front();
+				data->center.pop();
+				loadedCenter = true;
+			}
+			data->centerMutex.unlock();
+			if( loadedCenter )
+			{
+				Solve( centerProblem.problem );
+				centerProblem.customer->Solved( centerProblem.problem );
+			}
+			else
+				this_thread::yield();
+		}
 	}
 }
 
@@ -509,8 +552,8 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 				data->centerMutex.unlock();
 				this_thread::yield();
 			}
-			}
 		}
+}
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
 #endif
@@ -542,7 +585,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 				this_thread::yield();
 			}
 		}
-	}
+}
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
 #endif
