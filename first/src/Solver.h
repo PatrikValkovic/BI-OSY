@@ -1,35 +1,6 @@
 #ifndef __PROGTEST__
 #include "devs.h"
-#define __VALKOVIC__
 #endif
-
-class CSolver
-{
-public:
-	static void Solve( shared_ptr<CCenter> x );
-
-	static void Solve( shared_ptr<CRedundancy> x );
-
-	CSolver( void );
-
-	~CSolver( void );
-
-	void Start( int thrCnt );
-
-	void Stop( void );
-
-	void AddCustomer( ACustomer c );
-
-private:
-	bool stoped;
-	vector<thread*>* threads = nullptr;
-	vector<thread*> clientsThreads;
-
-	static void WorkingThreadFn( CSolver* data );
-
-	static void ClientCenterFn( CSolver* data, shared_ptr<CCustomer> problem );
-	static void ClientRedundancyFn( CSolver* data, shared_ptr<CCustomer> problem );
-};
 
 namespace Valkovic
 {
@@ -317,7 +288,66 @@ namespace Valkovic
 		return;
 	}
 
+	class RedundancyData
+	{
+	public:
+		shared_ptr<CRedundancy> problem;
+		shared_ptr<CCustomer> customer;
+
+		RedundancyData() {}
+		RedundancyData( shared_ptr<CRedundancy> problem, shared_ptr<CCustomer> customer )
+			: problem( problem ), customer( customer ) {}
+	};
+
+	class CenterData
+	{
+	public:
+		shared_ptr<CCenter> problem;
+		shared_ptr<CCustomer> customer;
+
+		CenterData() {}
+		CenterData( shared_ptr<CCenter> problem, shared_ptr<CCustomer> customer )
+			: problem( problem ), customer( customer ) {}
+	};
+
 }
+
+class CSolver
+{
+public:
+	static void Solve( shared_ptr<CCenter> x );
+
+	static void Solve( shared_ptr<CRedundancy> x );
+
+	CSolver( void );
+
+	~CSolver( void );
+
+	void Start( int thrCnt );
+
+	void Stop( void );
+
+	void AddCustomer( shared_ptr<CCustomer> c );
+
+private:
+	int maxProblemsInQueue;
+
+	bool stoped;
+	vector<thread*>* threads = nullptr;
+	vector<thread*> clientsThreads;
+
+	static void WorkingThreadFn( CSolver* data );
+
+	static void ClientCenterFn( CSolver* data, shared_ptr<CCustomer> client );
+	static void ClientRedundancyFn( CSolver* data, shared_ptr<CCustomer> client );
+
+	mutex redundancyMutex;
+	queue<Valkovic::RedundancyData> redundancy;
+	mutex centerMutex;
+	queue<Valkovic::CenterData> center;
+};
+
+
 
 
 void CSolver::Solve( shared_ptr<CCenter> x )
@@ -418,7 +448,8 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 void CSolver::Start( int threadCount )
 {
-	stoped = false;
+	this->stoped = false;
+	this->maxProblemsInQueue = threadCount;
 
 	this->threads = new vector<thread*>( threadCount );
 	for( int i = 0; i < threadCount; i++ )
@@ -427,6 +458,10 @@ void CSolver::Start( int threadCount )
 
 void CSolver::Stop( void )
 {
+	for( thread* t : this->clientsThreads )
+		t->join();
+	for( thread* t : *threads )
+		t->join();
 	for( thread* t : *threads )
 		delete t;
 	stoped = true;
@@ -443,31 +478,74 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 
 void CSolver::WorkingThreadFn( CSolver* data )
 {
-	CSolver* solver = (CSolver*)data;
+	while( true ) //TODO add end condition
+	{
+
+	}
 }
 
-void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> problem )
+void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 {
+	using Valkovic::CenterData;
 	shared_ptr<CCenter> instance;
-	while( instance = problem->GenCenter() )
+	bool added = false;
+	while( instance = client->GenCenter() )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of center arrive" << endl;
 #endif
-		//TODO do something
-	}
+		added = false;
+		while( !added )
+		{
+			data->centerMutex.lock();
+			if( data->center.size() < data->maxProblemsInQueue )
+			{
+				data->center.push( CenterData( instance, client ) );
+				data->centerMutex.unlock();
+				added = true;
+			}
+			else
+			{
+				data->centerMutex.unlock();
+				this_thread::yield();
+			}
+			}
+		}
+#ifdef __VALKOVIC__
+	cout << "Client ended with center problems" << endl;
+#endif
 }
 
-void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> problem )
+void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 {
+	using Valkovic::RedundancyData;
 	shared_ptr<CRedundancy> instance;
-	while( instance = problem->GenRedundancy() )
+	bool added = false;
+	while( instance = client->GenRedundancy() )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of redundancy arrive" << endl;
 #endif
-		//TODO do something
+		added = false;
+		while( !added )
+		{
+			data->redundancyMutex.lock();
+			if( data->center.size() < data->maxProblemsInQueue )
+			{
+				data->redundancy.push( RedundancyData( instance, client ) );
+				data->redundancyMutex.unlock();
+				added = true;
+			}
+			else
+			{
+				data->redundancyMutex.unlock();
+				this_thread::yield();
+			}
+		}
 	}
+#ifdef __VALKOVIC__
+	cout << "Client ended with redundancy problems" << endl;
+#endif
 }
 
 CSolver::CSolver( void )
