@@ -7,51 +7,55 @@ namespace Valkovic
 	class Edge
 	{
 	public:
-		CLink* link;
-		const char* from;
+		unsigned int from;
+		unsigned int to;
+		unsigned int realFrom;
 
-		Edge() : link( nullptr ), from( nullptr )
+		Edge() : from( UINT_MAX ), to( UINT_MAX ), realFrom( UINT_MAX )
 		{}
 
-		Edge( CLink &l ) : Edge()
+		Edge( unsigned int from, unsigned int to ) : Edge()
 		{
-			this->link = &l;
+			this->from = from;
+            this->to = to;
 		}
 
-		string to( string from )
+		unsigned int To(unsigned int from )
 		{
-			return link->m_From == from ? link->m_To : link->m_From;
+			return this->from == from ? this->to : this->from;
 		}
 
-		bool can( string from )
+		bool Can(unsigned int from )
 		{
-			if( link->m_From != from && link->m_To != from ) //node not used
-				return false;
+#ifndef __PROGTEST__
+			if( this->from != from && this->to != from ) //node not used
+				throw new MyException();
+#endif
 
-			if( this->from == nullptr ) //link is not in flow
+            return this->from == UINT_MAX || this->from != from;
+
+            /*
+			if( this->from == UINT_MAX ) //link is not in flow
 			{
 				return true; //can be used in all situtations
 			}
 			else //link alredy in flow
 			{
-				if( strcmp( this->from, from.c_str() ) == 0 ) //already used in same direction
+				if( this->from == from ) //already used in same direction
 					return false;
 				else //alredy used in oposite directon
 					return true;
-			}
+			}*/
 		}
 
-		void use( string from )
+		void Use( unsigned int from )
 		{
-			if( !can( from ) )
+#ifndef __PROGTEST__
+			if( !this->Can( from ) )
 				throw new MyException();
+#endif
 
-			this->from = this->link->m_From == from ? this->link->m_From.c_str() : this->link->m_To.c_str();
-		}
-
-		bool isUsed( string from )
-		{
-			return this->from != nullptr && strcmp( this->from, from.c_str() ) == 0;
+			this->from = from;
 		}
 	};
 	/*
