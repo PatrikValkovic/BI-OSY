@@ -13,9 +13,9 @@ namespace Valkovic
 	public:
 		unsigned int from;
 		unsigned int to;
-		unsigned int realFrom;
+		bool used;
 
-		Edge() : from( UINT_MAX ), to( UINT_MAX ), realFrom( UINT_MAX )
+		Edge() : from( UINT_MAX ), to( UINT_MAX ), used( false )
 		{}
 
 		Edge( unsigned int from, unsigned int to ) : Edge()
@@ -36,20 +36,7 @@ namespace Valkovic
 				throw new MyException();
 #endif
 
-			return this->realFrom == UINT_MAX || this->realFrom != from;
-
-			/*
-			if( this->from == UINT_MAX ) //link is not in flow
-			{
-			return true; //can be used in all situtations
-			}
-			else //link alredy in flow
-			{
-			if( this->from == from ) //already used in same direction
-			return false;
-			else //alredy used in oposite directon
-			return true;
-			}*/
+			return !this->used;
 		}
 
 		void Use( unsigned int from )
@@ -59,7 +46,7 @@ namespace Valkovic
 				throw new MyException();
 #endif
 
-			this->realFrom = from;
+			this->used = true;
 		}
 	};
 
@@ -96,71 +83,80 @@ namespace Valkovic
 		return first.index < sec.index;
 	}
 
-
-	uint64_t FordFuklerson( Vertex* begin, Vertex* end, vector<Vertex*> &allVertex )
+	//SOURCE: http://www.geeksforgeeks.org/find-edge-disjoint-paths-two-vertices/
+	bool bfs( const vector<vector<int>> &graph, int s, int t, vector<int> &parent )
 	{
-		while( true )
+		// Create a visited array and mark all vertices as not visited
+		size_t size = graph.size();
+		vector<bool> visited( size, false );
+
+		// Create a queue, enqueue source vertex and mark source vertex
+		// as visited
+		queue <int> q;
+		q.push( s );
+		visited[s] = true;
+		parent[s] = -1;
+
+		// Standard BFS Loop
+		while( !q.empty() )
 		{
-			stack<unsigned int> toProccess;
-			vector<bool> proccessed( allVertex.size(), false );
-			vector<unsigned int> fromTo( allVertex.size(), UINT_MAX );
-			//DFS
-			toProccess.push( begin->index );
-			while( !toProccess.empty() )
+			int u = q.front();
+			q.pop();
+
+			for( size_t v = 0; v < size; v++ )
 			{
-				Vertex* cur = allVertex[toProccess.top()];
-
-				if( cur->index == end->index )
-					break;
-
-				toProccess.pop();
-
-				if( proccessed[cur->index] )
-					continue;
-				proccessed[cur->index] = true;
-
-				for( pair<unsigned int, vector<Edge*>> edge : cur->edges )
+				if( visited[v] == false && graph[u][v] > 0 )
 				{
-					if( proccessed[edge.first] )
-						continue;
-					for( Edge* e : edge.second )
-					{
-						if( e->Can( cur->index ) )
-						{
-							unsigned int to = e->To( cur->index );
-							toProccess.push( to );
-							fromTo[to] = cur->index;
-						}
-					}
-				}
-			}
-			//reconstruct path
-			if( fromTo[end->index] == UINT_MAX )
-				break;
-			else
-			{
-				unsigned int to = end->index;
-				while( to != begin->index )
-				{
-					unsigned int from = fromTo[to];
-					Edge* e = allVertex[from]->getEdge( to );
-					e->Use( from );
-					to = from;
+					q.push( v );
+					parent[v] = u;
+					visited[v] = true;
 				}
 			}
 		}
-#ifdef __VALKOVIC__
-		cout << "End of FordFuklerson" << endl;
-#endif
 
-		uint64_t paths = 0;
-		for( pair<int, vector<Edge*>> edges : begin->edges )
-			for( Edge* edge : edges.second )
-				if( edge->realFrom == begin->index )
-					paths++;
+		// If we reached sink in BFS starting from source, then return
+		// true, else false
+		return ( visited[t] == true );
+	}
 
-		return paths;
+	unsigned int FordFuklerson( vector<vector<int>> graph, int start, int end )
+	{
+		int u, v;
 
+		vector<int> parent( graph.size() );  // This array is filled by BFS and to store path
+
+		int max_flow = 0;  // There is no flow initially
+
+						   // Augment the flow while tere is path from source to sink
+		while( bfs( graph, start, end, parent ) )
+		{
+			// Find minimum residual capacity of the edges along the
+			// path filled by BFS. Or we can say find the maximum flow
+			// through the path found.
+			int path_flow = INT_MAX;
+
+			for( v = end; v != start; v = parent[v] )
+			{
+				u = parent[v];
+				path_flow = min( path_flow, graph[u][v] );
+			}
+
+			// update residual capacities of the edges and reverse edges
+			// along the path
+			for( v = end; v != start; v = parent[v] )
+			{
+				u = parent[v];
+				graph[u][v] -= path_flow;
+				graph[v][u] += path_flow;
+			}
+
+			// Add path flow to overall flow
+			max_flow += path_flow;
+		}
+
+		// Return the overall flow (max_flow is equal to maximum
+		// number of edge-disjoint paths)
+		return max_flow;
 	}
 
 	void FloydWarshal( vector<CLink>& links, string& node, map<string, double>& latencies, double& maxLatency )
@@ -360,91 +356,84 @@ void CSolver::Solve( shared_ptr<CCenter> x )
 
 void CSolver::Solve( shared_ptr<CRedundancy> param )
 {
-	using Valkovic::Vertex;
-	using Valkovic::Edge;
+	unsigned int countOfIndexes = 0;
+	map<string, unsigned int> indexes;
+	vector<vector<int>> linksMap;
 
-	//get center
-	string centerName = param->m_Center;
 
-	//prepare structures
-	vector<Edge*> edges;
-	map<unsigned int, string> indexToName;
-	map<string, unsigned int> nameToIndex;
-	vector<Vertex*> vertexes;
-
-	//fill structures
-	for( CLink& x : param->m_Links )
+	//fill 2d array
+	for( size_t b = 0, e = param->m_Links.size(); b < e; b++ )
 	{
-
-		if( nameToIndex.find( x.m_From ) == nameToIndex.end() )
+		CLink& link = param->m_Links[b];
+		//add vector if required
+		if( indexes.find( link.m_From ) == indexes.end() )
 		{
-			indexToName.insert( pair<unsigned int, string>( vertexes.size(), x.m_From ) );
-			nameToIndex.insert( pair<string, unsigned int>( x.m_From, vertexes.size() ) );
-			vertexes.push_back( new Vertex( (unsigned int)vertexes.size() ) );
+			indexes.insert( pair<string, unsigned int>( link.m_From, countOfIndexes ) );
+			linksMap.push_back( vector<int>() );
+			countOfIndexes++;
 		}
-		if( nameToIndex.find( x.m_To ) == nameToIndex.end() )
+		if( indexes.find( link.m_To ) == indexes.end() )
 		{
-			indexToName.insert( pair<unsigned int, string>( (unsigned int)vertexes.size(), x.m_To ) );
-			nameToIndex.insert( pair<string, unsigned int>( x.m_To, (unsigned int)vertexes.size() ) );
-			vertexes.push_back( new Vertex( (unsigned int)vertexes.size() ) );
+			indexes.insert( pair<string, unsigned int>( link.m_To, countOfIndexes ) );
+			linksMap.push_back( vector<int>() );
+			countOfIndexes++;
 		}
+		//get indexes
+		uint64_t indexFrom = indexes[link.m_From];
+		uint64_t indexTo = indexes[link.m_To];
+		//resize vectors if required
+		if( linksMap[indexFrom].size() <= indexTo )
+		{
+			size_t oldSize = linksMap[indexFrom].size();
+			size_t inserted = countOfIndexes - oldSize;
+			linksMap[indexFrom].resize( countOfIndexes );
+			for( size_t i = 0; i < inserted; i++ )
+				linksMap[indexFrom][oldSize + i] = 0;
+		}
+		if( linksMap[indexTo].size() <= indexFrom )
+		{
+			size_t oldSize = linksMap[indexTo].size();
+			size_t inserted = countOfIndexes - oldSize;
+			linksMap[indexTo].resize( countOfIndexes );
+			for( size_t i = 0; i < inserted; i++ )
+				linksMap[indexTo][oldSize + i] = 0;
+		}
+		linksMap[indexFrom][indexTo]++;
+		linksMap[indexTo][indexFrom]++;
+	}
 
-
-		Vertex* vertexFrom = vertexes[nameToIndex[x.m_From]];
-		Vertex* vertexTo = vertexes[nameToIndex[x.m_To]];
-		Edge* cur = new Edge( vertexFrom->index, vertexTo->index );
-		edges.push_back( cur );
-		if( vertexFrom->edges.find( vertexTo->index ) == vertexFrom->edges.end() )
-			vertexFrom->edges.insert( pair<int, vector<Edge*>>( vertexTo->index, vector<Edge*>() ) );
-		if( vertexTo->edges.find( vertexFrom->index ) == vertexTo->edges.end() )
-			vertexTo->edges.insert( pair<int, vector<Edge*>>( vertexFrom->index, vector<Edge*>() ) );
-
-		vertexFrom->edges[vertexTo->index].push_back( cur );
-		vertexTo->edges[vertexFrom->index].push_back( cur );
+	//resize vectors
+	for( uint64_t i = 0; i < countOfIndexes; i++ )
+	{
+		size_t oldSize = linksMap[i].size();
+		linksMap[i].resize( countOfIndexes );
+		for( uint64_t j = 0, set = countOfIndexes - oldSize; j < set; j++ )
+			linksMap[i][oldSize + j] = 0;
+		linksMap[i][i] = 0;
 	}
 
 #ifdef __VALKOVIC__
-	cout << "Links" << endl;
-	for( Vertex* v : vertexes )
-	{
-		cout << v->index << endl;
-		for( pair<int, vector<Edge*>> e : v->edges )
-			cout << "\t - " << e.first << ":" << e.second.size() << endl;
-	}
+	cout << "Map: " << endl;
+	unsigned int len = linksMap.size();
+	for( unsigned int i = 0; i < len; i++, cout << endl )
+		for( unsigned int j = 0; j < len; j++ )
+			cout << linksMap[i][j] << '\t';
 #endif
-
-	//find center index
-	unsigned int centerIndex = nameToIndex[centerName];
-	Vertex* centerVertex = vertexes[centerIndex];
-
-	//for each vertex except center apply FordFulkerson
-	for( Vertex* v : vertexes )
+	int centerIndex = indexes[param->m_Center];
+	for( auto v : indexes )
 	{
-		if( v->index == centerIndex )
+		if( v.first == param->m_Center )
 			continue;
 
-		//reset capacity
-		for( Edge* e : edges )
-			e->realFrom = UINT_MAX;
-
 #ifdef __VALKOVIC__
-		cout << "Running FordFuklerson between " << centerName << " and " << indexToName[v->index] << endl;
+		cout << "Running FordFuklerson between " << param->m_Center << " and " << v.first << endl;
 #endif
-
-		//FordFuklerson
-		uint64_t result = Valkovic::FordFuklerson( centerVertex, v, vertexes );
-
-#ifdef __VALKOVIC__
-		cout << "Founded " << result << " paths to " << indexToName[v->index] << endl;
-#endif
-		param->m_Redundancy.insert( pair<string, int>( indexToName[v->index], (int)result ) );
-
+		unsigned int result = Valkovic::FordFuklerson( linksMap, centerIndex, v.second );
+		param->m_Redundancy.insert( pair<string, int>( v.first, (int)result ) );
 	}
-
-	for( Edge* e : edges )
-		delete e;
-	for( Vertex* v : vertexes )
-		delete v;
+#ifdef __VALKOVIC__
+	cout << "End of Redundancy problem" << endl;
+#endif
 }
 
 
