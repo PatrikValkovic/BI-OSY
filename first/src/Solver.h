@@ -16,11 +16,9 @@ public:
 	~CSolver( void )
 	{}
 
-	void Start( int thrCnt )
-	{}
+	void Start( int thrCnt );
 
-	void Stop( void )
-	{}
+	void Stop( void );
 
 	void AddCustomer( ACustomer c )
 	{}
@@ -408,4 +406,20 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 		delete e;
 	for( Vertex* v : vertexes )
 		delete v;
+}
+
+
+void CSolver::Start( int threadCount )
+{
+
+}
+
+void CSolver::Stop( void )
+{
+
+}
+
+void CSolver::AddCustomer( shared_ptr<CCustomer> c )
+{
+
 }
