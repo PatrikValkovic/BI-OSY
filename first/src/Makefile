@@ -1,7 +1,7 @@
 OUTPUT = build
 
 build/program.exe: main.cpp Solver.h test.inc devs.h data.inc
-	g++ main.cpp  -o build/program.exe -std=c++11 -Wall -pedantic -D __VALKOVIC__ -pthread
+	g++ main.cpp  -o build/program.exe -std=c++11 -Wall -pedantic -D __VALKOVIC__ -pthread -g
 
 build/release.exe: main.cpp Solver.h test.inc devs.h data.inc
 	g++ main.cpp  -o build/release.exe -std=c++11 -Wall -pedantic -pthread

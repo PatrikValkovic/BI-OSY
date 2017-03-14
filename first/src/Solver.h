@@ -345,6 +345,8 @@ private:
 	queue<Valkovic::RedundancyData> redundancy;
 	mutex centerMutex;
 	queue<Valkovic::CenterData> center;
+
+	atomic_bool ended;
 };
 
 
@@ -448,6 +450,9 @@ void CSolver::Solve( shared_ptr<CRedundancy> param )
 
 void CSolver::Start( int threadCount )
 {
+#ifdef __VALKOVIC__
+	cout << "Starting with " << threadCount << " threads" << endl;
+#endif
 	this->stoped = false;
 	this->maxProblemsInQueue = threadCount;
 
@@ -458,6 +463,11 @@ void CSolver::Start( int threadCount )
 
 void CSolver::Stop( void )
 {
+	this->ended = true;
+
+#ifdef __VALKOVIC__
+	cout << "Stoping" << endl;
+#endif 
 	for( thread* t : this->clientsThreads )
 		t->join();
 	for( thread* t : *threads )
@@ -472,6 +482,10 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 	if( this->stoped )
 		return;
 
+#ifdef __VALKOVIC__
+	cout << "New client arrive" << endl;
+#endif
+
 	clientsThreads.push_back( new thread( ClientCenterFn, this, c ) );
 	clientsThreads.push_back( new thread( ClientRedundancyFn, this, c ) );
 }
@@ -485,14 +499,15 @@ void CSolver::WorkingThreadFn( CSolver* data )
 	CenterData centerProblem;
 	bool loadedRedundancy;
 	bool loadedCenter;
+	bool obtainedTask = false;
 
-	shared_ptr<CCenter> centerProblem;
-	while( true ) //TODO add end condition
+	while( !data->ended || obtainedTask ) //TODO add end condition
 	{
+		obtainedTask = false;
 		//try to get redundancy problem
 		loadedRedundancy = false;
 		data->redundancyMutex.lock();
-		if( data->redundancy.size() > 0 )
+		if( (int)data->redundancy.size() > 0 )
 		{
 			redProblem = data->redundancy.front();
 			data->redundancy.pop();
@@ -501,6 +516,10 @@ void CSolver::WorkingThreadFn( CSolver* data )
 		data->redundancyMutex.unlock();
 		if( loadedRedundancy )
 		{
+#ifdef __VALKOVIC__
+			cout << "Going to solve redundancy problem" << endl;
+#endif
+			obtainedTask = true;
 			Solve( redProblem.problem );
 			redProblem.customer->Solved( redProblem.problem );
 		}
@@ -509,7 +528,7 @@ void CSolver::WorkingThreadFn( CSolver* data )
 			loadedCenter = false;
 			//try to gen center problem
 			data->centerMutex.lock();
-			if( data->center.size() > 0 )
+			if( (int)data->center.size() > 0 )
 			{
 				centerProblem = data->center.front();
 				data->center.pop();
@@ -518,6 +537,10 @@ void CSolver::WorkingThreadFn( CSolver* data )
 			data->centerMutex.unlock();
 			if( loadedCenter )
 			{
+#ifdef __VALKOVIC__
+				cout << "Going to solve center problem" << endl;
+#endif
+				obtainedTask = true;
 				Solve( centerProblem.problem );
 				centerProblem.customer->Solved( centerProblem.problem );
 			}
@@ -525,6 +548,10 @@ void CSolver::WorkingThreadFn( CSolver* data )
 				this_thread::yield();
 		}
 	}
+
+#ifdef __VALKOVIC__
+	cout << "Working thread ended" << endl;
+#endif
 }
 
 void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
@@ -541,7 +568,7 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 		while( !added )
 		{
 			data->centerMutex.lock();
-			if( data->center.size() < data->maxProblemsInQueue )
+			if( (int)data->center.size() < data->maxProblemsInQueue )
 			{
 				data->center.push( CenterData( instance, client ) );
 				data->centerMutex.unlock();
@@ -553,7 +580,7 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 				this_thread::yield();
 			}
 		}
-}
+	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
 #endif
@@ -573,7 +600,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 		while( !added )
 		{
 			data->redundancyMutex.lock();
-			if( data->center.size() < data->maxProblemsInQueue )
+			if( (int)data->center.size() < data->maxProblemsInQueue )
 			{
 				data->redundancy.push( RedundancyData( instance, client ) );
 				data->redundancyMutex.unlock();
@@ -585,13 +612,13 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 				this_thread::yield();
 			}
 		}
-}
+	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
 #endif
 }
 
-CSolver::CSolver( void )
+CSolver::CSolver( void ) : ended( false )
 {}
 
 CSolver::~CSolver( void )
