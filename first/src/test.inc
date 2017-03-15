@@ -69,7 +69,7 @@ void               TestSequential                          ( void )
 //=================================================================================================
 int                main                                    ( void )
 {
-  TestSequential ();
+  //TestSequential ();
   TestParallel ();
   return 0;
 }

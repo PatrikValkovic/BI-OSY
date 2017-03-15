@@ -460,10 +460,13 @@ void CSolver::Stop( void )
 #endif 
 	for( thread* t : this->clientsThreads )
 		t->join();
+	for( thread* t : this->clientsThreads )
+		delete t;
 	for( thread* t : *threads )
 		t->join();
 	for( thread* t : *threads )
 		delete t;
+	delete this->threads;
 	stoped = true;
 }
 
@@ -612,7 +615,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 	data->clients.fetch_sub( 1 );
 }
 
-CSolver::CSolver( void ) : ended( false ), clients(0)
+CSolver::CSolver( void ) : maxProblemsInQueue( -1 ), stoped( false ), ended( false ), clients(0)
 {}
 
 CSolver::~CSolver( void )
