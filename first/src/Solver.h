@@ -343,6 +343,7 @@ private:
 	queue<Valkovic::CenterData> center;
 
 	atomic_bool ended;
+	atomic_int clients;
 };
 
 
@@ -477,6 +478,8 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 
 	clientsThreads.push_back( new thread( ClientCenterFn, this, c ) );
 	clientsThreads.push_back( new thread( ClientRedundancyFn, this, c ) );
+
+	this->clients.fetch_add( 2 );
 }
 
 void CSolver::WorkingThreadFn( CSolver* data )
@@ -490,7 +493,7 @@ void CSolver::WorkingThreadFn( CSolver* data )
 	bool loadedCenter;
 	bool obtainedTask = false;
 
-	while( !data->ended || obtainedTask ) //TODO add end condition
+	while( data->ended.load() == false || obtainedTask || data->clients.load() > 0 )
 	{
 		obtainedTask = false;
 		//try to get redundancy problem
@@ -548,7 +551,7 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 	using Valkovic::CenterData;
 	shared_ptr<CCenter> instance;
 	bool added = false;
-	while( instance = client->GenCenter() )
+	while( (instance = client->GenCenter()) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of center arrive" << endl;
@@ -573,6 +576,7 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
 #endif
+	data->clients.fetch_sub( 1 );
 }
 
 void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
@@ -580,7 +584,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 	using Valkovic::RedundancyData;
 	shared_ptr<CRedundancy> instance;
 	bool added = false;
-	while( instance = client->GenRedundancy() )
+	while( (instance = client->GenRedundancy()) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of redundancy arrive" << endl;
@@ -605,9 +609,10 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
 #endif
+	data->clients.fetch_sub( 1 );
 }
 
-CSolver::CSolver( void ) : ended( false )
+CSolver::CSolver( void ) : ended( false ), clients(0)
 {}
 
 CSolver::~CSolver( void )
