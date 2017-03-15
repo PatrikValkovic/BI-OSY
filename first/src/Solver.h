@@ -328,7 +328,6 @@ public:
 private:
 	int maxProblemsInQueue;
 
-	bool stoped;
 	vector<thread*>* threads = nullptr;
 	vector<thread*> clientsThreads;
 
@@ -443,10 +442,11 @@ void CSolver::Start( int threadCount )
 #ifdef __VALKOVIC__
 	cout << "Starting with " << threadCount << " threads" << endl;
 #endif
-	this->stoped = false;
+	this->ended.store( false );
 	this->maxProblemsInQueue = threadCount;
+	this->threads->resize( threadCount );
+	this->clientsThreads.resize( 0 );
 
-	this->threads = new vector<thread*>( threadCount );
 	for( int i = 0; i < threadCount; i++ )
 		( *this->threads )[i] = new thread( WorkingThreadFn, this );
 }
@@ -466,15 +466,10 @@ void CSolver::Stop( void )
 		t->join();
 	for( thread* t : *threads )
 		delete t;
-	delete this->threads;
-	stoped = true;
 }
 
 void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 {
-	if( this->stoped )
-		return;
-
 #ifdef __VALKOVIC__
 	cout << "New client arrive" << endl;
 #endif
@@ -554,7 +549,7 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 	using Valkovic::CenterData;
 	shared_ptr<CCenter> instance;
 	bool added = false;
-	while( (instance = client->GenCenter()) != NULL )
+	while( ( instance = client->GenCenter() ) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of center arrive" << endl;
@@ -587,7 +582,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 	using Valkovic::RedundancyData;
 	shared_ptr<CRedundancy> instance;
 	bool added = false;
-	while( (instance = client->GenRedundancy()) != NULL )
+	while( ( instance = client->GenRedundancy() ) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of redundancy arrive" << endl;
@@ -615,11 +610,12 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 	data->clients.fetch_sub( 1 );
 }
 
-CSolver::CSolver( void ) : maxProblemsInQueue( -1 ), stoped( false ), ended( false ), clients(0)
-{}
+CSolver::CSolver( void ) : maxProblemsInQueue( -1 ), ended( false ), clients( 0 )
+{
+	this->threads = new vector<thread*>();
+}
 
 CSolver::~CSolver( void )
 {
-	if( !this->stoped )
-		this->Stop();
+	delete this->threads;
 }
