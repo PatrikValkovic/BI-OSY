@@ -391,10 +391,7 @@ private:
 	static void ClientCenterFn( CSolver* data, shared_ptr<CCustomer> client );
 	static void ClientRedundancyFn( CSolver* data, shared_ptr<CCustomer> client );
 
-	mutex redundancyMutex;
-	queue<Valkovic::RedundancyData> redundancy;
-	mutex centerMutex;
-	queue<Valkovic::CenterData> center;
+	Valkovic::BlockingQueue queue;
 
 	atomic_bool ended;
 	atomic_int clients;
@@ -510,6 +507,11 @@ void CSolver::Stop( void )
 {
 	this->ended.store( true );
 
+	//TODO wait to finish users
+	//fill end command
+	for( size_t i = 0, l = this->threads.size(); i < l; i++ )
+		this->queue.push(Valkovic::ProblemData(Valkovic::Problems::quit));
+
 #ifdef __VALKOVIC__
 	cout << "Stoping" << endl;
 #endif 
@@ -601,16 +603,14 @@ void CSolver::WorkingThreadFn( CSolver* data )
 
 void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 {
-	using Valkovic::CenterData;
+	using Valkovic::ProblemData;
 	shared_ptr<CCenter> instance;
 	while( ( instance = client->GenCenter() ) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of center arrive" << endl;
 #endif
-		data->centerMutex.lock();
-		data->center.push( CenterData( instance, client ) );
-		data->centerMutex.unlock();
+		data->queue.push(ProblemData(instance,client));
 	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
@@ -620,16 +620,14 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 
 void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 {
-	using Valkovic::RedundancyData;
+	using Valkovic::ProblemData;
 	shared_ptr<CRedundancy> instance;
 	while( ( instance = client->GenRedundancy() ) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of redundancy arrive" << endl;
 #endif
-		data->redundancyMutex.lock();
-		data->redundancy.push( RedundancyData( instance, client ) );
-		data->redundancyMutex.unlock();
+		data->queue.push( ProblemData( instance, client ) );
 	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
