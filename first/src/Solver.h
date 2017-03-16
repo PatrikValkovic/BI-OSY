@@ -333,6 +333,34 @@ namespace Valkovic
 		{}
 	};
 
+	//SOURCE https://juanchopanzacpp.wordpress.com/2013/02/26/concurrent-queue-c11/
+	class BlockingQueue
+	{
+	private:
+		std::queue<ProblemData> queue_;
+		std::mutex mutex_;
+		std::condition_variable cond_;
+	public:
+		ProblemData pop()
+		{
+			std::unique_lock<std::mutex> mlock( mutex_ );
+			while( queue_.empty() )
+			{
+				cond_.wait( mlock );
+			}
+			auto item = queue_.front();
+			queue_.pop();
+			return item;
+		}
+
+		void push( const ProblemData item )
+		{
+			std::unique_lock<std::mutex> mlock( mutex_ );
+			queue_.push( item );
+			mlock.unlock();
+			cond_.notify_one();
+		}
+	};
 }
 
 class CSolver
