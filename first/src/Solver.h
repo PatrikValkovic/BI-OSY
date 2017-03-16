@@ -381,8 +381,6 @@ public:
 	void AddCustomer( shared_ptr<CCustomer> c );
 
 private:
-	int maxProblemsInQueue;
-
 	vector<thread*> threads;
 	vector<thread*> clientsThreads;
 
@@ -393,7 +391,6 @@ private:
 
 	Valkovic::BlockingQueue queue;
 
-	atomic_bool ended;
 	atomic_int clients;
 };
 
@@ -494,8 +491,6 @@ void CSolver::Start( int threadCount )
 #ifdef __VALKOVIC__
 	cout << "Starting with " << threadCount << " threads" << endl;
 #endif
-	this->ended.store( false );
-	this->maxProblemsInQueue = threadCount;
 	this->threads.resize( threadCount );
 	this->clientsThreads.resize( 0 );
 
@@ -505,8 +500,6 @@ void CSolver::Start( int threadCount )
 
 void CSolver::Stop( void )
 {
-	this->ended.store( true );
-
 	//TODO wait to finish users
 	//fill end command
 	for( size_t i = 0, l = this->threads.size(); i < l; i++ )
@@ -598,7 +591,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 	data->clients.fetch_sub( 1 );
 }
 
-CSolver::CSolver( void ) : maxProblemsInQueue( -1 ), ended( false ), clients( 0 )
+CSolver::CSolver( void ) : clients( 0 )
 {}
 
 CSolver::~CSolver( void )
