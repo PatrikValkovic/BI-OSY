@@ -328,7 +328,7 @@ public:
 private:
 	int maxProblemsInQueue;
 
-	vector<thread*>* threads = nullptr;
+	vector<thread*> threads;
 	vector<thread*> clientsThreads;
 
 	static void WorkingThreadFn( CSolver* data );
@@ -444,16 +444,16 @@ void CSolver::Start( int threadCount )
 #endif
 	this->ended.store( false );
 	this->maxProblemsInQueue = threadCount;
-	this->threads->resize( threadCount );
+	this->threads.resize( threadCount );
 	this->clientsThreads.resize( 0 );
 
 	for( int i = 0; i < threadCount; i++ )
-		( *this->threads )[i] = new thread( WorkingThreadFn, this );
+		this->threads[i] = new thread( WorkingThreadFn, this );
 }
 
 void CSolver::Stop( void )
 {
-	this->ended = true;
+	this->ended.store(true);
 
 #ifdef __VALKOVIC__
 	cout << "Stoping" << endl;
@@ -462,9 +462,9 @@ void CSolver::Stop( void )
 		t->join();
 	for( thread* t : this->clientsThreads )
 		delete t;
-	for( thread* t : *threads )
+	for( thread* t : this->threads )
 		t->join();
-	for( thread* t : *threads )
+	for( thread* t : this->threads )
 		delete t;
 }
 
@@ -548,28 +548,14 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 {
 	using Valkovic::CenterData;
 	shared_ptr<CCenter> instance;
-	bool added = false;
 	while( ( instance = client->GenCenter() ) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of center arrive" << endl;
 #endif
-		added = false;
-		while( !added )
-		{
-			data->centerMutex.lock();
-			if( (int)data->center.size() < data->maxProblemsInQueue )
-			{
-				data->center.push( CenterData( instance, client ) );
-				data->centerMutex.unlock();
-				added = true;
-			}
-			else
-			{
-				data->centerMutex.unlock();
-				this_thread::yield();
-			}
-		}
+		data->centerMutex.lock();
+		data->center.push( CenterData( instance, client ) );
+		data->centerMutex.unlock();
 	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
@@ -581,28 +567,14 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 {
 	using Valkovic::RedundancyData;
 	shared_ptr<CRedundancy> instance;
-	bool added = false;
 	while( ( instance = client->GenRedundancy() ) != NULL )
 	{
 #ifdef __VALKOVIC__
 		cout << "Next problem of redundancy arrive" << endl;
 #endif
-		added = false;
-		while( !added )
-		{
-			data->redundancyMutex.lock();
-			if( (int)data->center.size() < data->maxProblemsInQueue )
-			{
-				data->redundancy.push( RedundancyData( instance, client ) );
-				data->redundancyMutex.unlock();
-				added = true;
-			}
-			else
-			{
-				data->redundancyMutex.unlock();
-				this_thread::yield();
-			}
-		}
+		data->redundancyMutex.lock();
+		data->redundancy.push( RedundancyData( instance, client ) );
+		data->redundancyMutex.unlock();
 	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
@@ -611,11 +583,8 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 }
 
 CSolver::CSolver( void ) : maxProblemsInQueue( -1 ), ended( false ), clients( 0 )
-{
-	this->threads = new vector<thread*>();
-}
+{}
 
 CSolver::~CSolver( void )
 {
-	delete this->threads;
 }

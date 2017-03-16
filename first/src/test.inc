@@ -45,12 +45,7 @@ void               TestParallel                            ( void )
   CSolver   s;
   
   s . AddCustomer ( make_shared<CCustomerReal> () );
-  s . Start ( 8 );
-  s . AddCustomer ( make_shared<CCustomerReal> () );
-  s . Stop ();
-
-  s . AddCustomer ( make_shared<CCustomerReal> () );
-  s . Start ( 8 );
+  s . Start ( 2 );
   s . AddCustomer ( make_shared<CCustomerReal> () );
   s . Stop ();
 }
