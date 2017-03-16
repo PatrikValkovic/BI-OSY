@@ -284,6 +284,13 @@ namespace Valkovic
 		return;
 	}
 
+	enum Problems
+	{
+		redundancy,
+		center,
+		quit
+	};
+
 	class RedundancyData
 	{
 	public:
@@ -304,6 +311,19 @@ namespace Valkovic
 		CenterData() {}
 		CenterData( shared_ptr<CCenter> problem, shared_ptr<CCustomer> customer )
 			: problem( problem ), customer( customer ) {}
+	};
+
+	union ProblemUnion
+	{
+		CenterData center;
+		RedundancyData redundancy;
+	};
+
+	class ProblemData
+	{
+	public:
+		Problems type;
+		ProblemUnion problem;
 	};
 
 }
