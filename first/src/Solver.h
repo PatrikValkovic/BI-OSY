@@ -313,17 +313,24 @@ namespace Valkovic
 			: problem( problem ), customer( customer ) {}
 	};
 
-	union ProblemUnion
-	{
-		CenterData center;
-		RedundancyData redundancy;
-	};
-
 	class ProblemData
 	{
 	public:
 		Problems type;
-		ProblemUnion problem;
+
+		CenterData center;
+		RedundancyData redundancy;
+
+		ProblemData( shared_ptr<CCenter> problem, shared_ptr<CCustomer> customer )
+			: type( Problems::center ), center( problem, customer ) {}
+
+		ProblemData( shared_ptr<CRedundancy> problem, shared_ptr<CCustomer> customer )
+			: type( Problems::center ), redundancy( problem, customer ) {}
+
+		ProblemData() = default;
+
+		ProblemData( Problems p ) : type( p )
+		{}
 	};
 
 }
@@ -473,7 +480,7 @@ void CSolver::Start( int threadCount )
 
 void CSolver::Stop( void )
 {
-	this->ended.store(true);
+	this->ended.store( true );
 
 #ifdef __VALKOVIC__
 	cout << "Stoping" << endl;
