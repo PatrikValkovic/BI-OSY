@@ -288,7 +288,8 @@ namespace Valkovic
 	{
 		redundancy,
 		center,
-		quit
+		quit,
+		deleteThread
 	};
 
 	class RedundancyData
@@ -320,6 +321,9 @@ namespace Valkovic
 
 		CenterData center;
 		RedundancyData redundancy;
+		thread::id thread_id;
+
+		ProblemData() = default;
 
 		ProblemData( shared_ptr<CCenter> problem, shared_ptr<CCustomer> customer )
 			: type( Problems::center ), center( problem, customer ) {}
@@ -327,7 +331,8 @@ namespace Valkovic
 		ProblemData( shared_ptr<CRedundancy> problem, shared_ptr<CCustomer> customer )
 			: type( Problems::redundancy ), redundancy( problem, customer ) {}
 
-		ProblemData() = default;
+		ProblemData( thread::id t ) : type( Valkovic::Problems::deleteThread ), thread_id( t )
+		{}
 
 		ProblemData( Problems p ) : type( p )
 		{}
@@ -382,7 +387,9 @@ public:
 
 private:
 	vector<thread*> threads;
-	vector<thread*> clientsThreads;
+
+	mutex clientsThreadsMutex;
+	map<thread::id, thread*> clientsThreads;
 
 	static void WorkingThreadFn( CSolver* data );
 
@@ -494,7 +501,6 @@ void CSolver::Start( int threadCount )
 	cout << "Starting with " << threadCount << " threads" << endl;
 #endif
 	this->threads.resize( threadCount );
-	this->clientsThreads.resize( 0 );
 
 	for( int i = 0; i < threadCount; i++ )
 		this->threads[i] = new thread( WorkingThreadFn, this );
@@ -514,10 +520,6 @@ void CSolver::Stop( void )
 #ifdef __VALKOVIC__
 	cout << "Stoping" << endl;
 #endif 
-	for( thread* t : this->clientsThreads )
-		t->join();
-	for( thread* t : this->clientsThreads )
-		delete t;
 	for( thread* t : this->threads )
 		t->join();
 	for( thread* t : this->threads )
@@ -533,8 +535,12 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 	this->clients += 2;
 	this->clientsMutex.unlock();
 
-	clientsThreads.push_back( new thread( ClientCenterFn, this, c ) );
-	clientsThreads.push_back( new thread( ClientRedundancyFn, this, c ) );
+	clientsThreadsMutex.lock();
+	thread* center = new thread( ClientCenterFn, this, c );
+	clientsThreads.insert( pair<thread::id, thread*>( center->get_id(), center ) );
+	thread* redundancy = new thread( ClientRedundancyFn, this, c );
+	clientsThreads.insert( pair<thread::id, thread*>( redundancy->get_id(), redundancy ) );
+	clientsThreadsMutex.unlock();
 }
 
 void CSolver::WorkingThreadFn( CSolver* data )
@@ -557,6 +563,21 @@ void CSolver::WorkingThreadFn( CSolver* data )
 			Solve( d.redundancy.problem );
 			d.redundancy.customer->Solved( d.redundancy.problem );
 		}
+		else if( d.type == Problems::deleteThread )
+		{
+			data->clientsThreadsMutex.lock();
+			thread* center = data->clientsThreads[d.thread_id];
+			data->clientsThreads.erase(d.thread_id);
+			data->clientsThreadsMutex.unlock();
+			center->join();
+			delete center;
+
+			data->clientsMutex.lock();
+			data->clients--;
+			if( data->clients == 0 )
+				data->clientsEnded.notify_all();
+			data->clientsMutex.unlock();
+		}
 	}
 
 #ifdef __VALKOVIC__
@@ -578,11 +599,7 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
 #endif
-	data->clientsMutex.lock();
-	data->clients--;
-	if( data->clients == 0 )
-		data->clientsEnded.notify_all();
-	data->clientsMutex.unlock();
+	data->queue.push( ProblemData( this_thread::get_id() ) );
 }
 
 void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
@@ -599,12 +616,7 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
 #endif
-	data->clientsMutex.lock();
-	data->clients--;
-	if( data->clients == 0 )
-		data->clientsEnded.notify_all();
-	data->clientsMutex.unlock();
-
+	data->queue.push( ProblemData( this_thread::get_id() ) );
 }
 
 CSolver::CSolver( void ) : clients( 0 )
