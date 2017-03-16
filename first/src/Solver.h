@@ -325,7 +325,7 @@ namespace Valkovic
 			: type( Problems::center ), center( problem, customer ) {}
 
 		ProblemData( shared_ptr<CRedundancy> problem, shared_ptr<CCustomer> customer )
-			: type( Problems::center ), redundancy( problem, customer ) {}
+			: type( Problems::redundancy ), redundancy( problem, customer ) {}
 
 		ProblemData() = default;
 
@@ -539,60 +539,23 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 
 void CSolver::WorkingThreadFn( CSolver* data )
 {
-	using Valkovic::RedundancyData;
-	using Valkovic::CenterData;
+	using Valkovic::ProblemData;
+	using Valkovic::Problems;
 
-	RedundancyData redProblem;
-	CenterData centerProblem;
-	bool loadedRedundancy;
-	bool loadedCenter;
-	bool obtainedTask = false;
-
-	while( data->ended.load() == false || obtainedTask || data->clients.load() > 0 )
+	while( true )
 	{
-		obtainedTask = false;
-		//try to get redundancy problem
-		loadedRedundancy = false;
-		data->redundancyMutex.lock();
-		if( (int)data->redundancy.size() > 0 )
+		ProblemData d = data->queue.pop();
+		if( d.type == Problems::quit )
+			break;
+		else if( d.type == Problems::center )
 		{
-			redProblem = data->redundancy.front();
-			data->redundancy.pop();
-			loadedRedundancy = true;
+			Solve(d.center.problem);
+			d.center.customer->Solved(d.center.problem);
 		}
-		data->redundancyMutex.unlock();
-		if( loadedRedundancy )
+		else if( d.type == Problems::redundancy )
 		{
-#ifdef __VALKOVIC__
-			cout << "Going to solve redundancy problem" << endl;
-#endif
-			obtainedTask = true;
-			Solve( redProblem.problem );
-			redProblem.customer->Solved( redProblem.problem );
-		}
-		else
-		{
-			loadedCenter = false;
-			//try to gen center problem
-			data->centerMutex.lock();
-			if( (int)data->center.size() > 0 )
-			{
-				centerProblem = data->center.front();
-				data->center.pop();
-				loadedCenter = true;
-			}
-			data->centerMutex.unlock();
-			if( loadedCenter )
-			{
-#ifdef __VALKOVIC__
-				cout << "Going to solve center problem" << endl;
-#endif
-				obtainedTask = true;
-				Solve( centerProblem.problem );
-				centerProblem.customer->Solved( centerProblem.problem );
-			}
-			else
-				this_thread::yield();
+			Solve( d.redundancy.problem );
+			d.redundancy.customer->Solved( d.redundancy.problem );
 		}
 	}
 
