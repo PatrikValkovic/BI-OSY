@@ -391,7 +391,9 @@ private:
 
 	Valkovic::BlockingQueue queue;
 
-	atomic_int clients;
+	mutex clientsMutex;
+	int clients;
+	condition_variable clientsEnded;
 };
 
 
@@ -501,9 +503,13 @@ void CSolver::Start( int threadCount )
 void CSolver::Stop( void )
 {
 	//TODO wait to finish users
+	unique_lock<mutex> clientsLock( this->clientsMutex );
+	while( this->clients != 0 )
+		clientsEnded.wait( clientsLock );
+	clientsLock.unlock();
 	//fill end command
 	for( size_t i = 0, l = this->threads.size(); i < l; i++ )
-		this->queue.push(Valkovic::ProblemData(Valkovic::Problems::quit));
+		this->queue.push( Valkovic::ProblemData( Valkovic::Problems::quit ) );
 
 #ifdef __VALKOVIC__
 	cout << "Stoping" << endl;
@@ -523,11 +529,12 @@ void CSolver::AddCustomer( shared_ptr<CCustomer> c )
 #ifdef __VALKOVIC__
 	cout << "New client arrive" << endl;
 #endif
+	this->clientsMutex.lock();
+	this->clients += 2;
+	this->clientsMutex.unlock();
 
 	clientsThreads.push_back( new thread( ClientCenterFn, this, c ) );
 	clientsThreads.push_back( new thread( ClientRedundancyFn, this, c ) );
-
-	this->clients.fetch_add( 2 );
 }
 
 void CSolver::WorkingThreadFn( CSolver* data )
@@ -542,8 +549,8 @@ void CSolver::WorkingThreadFn( CSolver* data )
 			break;
 		else if( d.type == Problems::center )
 		{
-			Solve(d.center.problem);
-			d.center.customer->Solved(d.center.problem);
+			Solve( d.center.problem );
+			d.center.customer->Solved( d.center.problem );
 		}
 		else if( d.type == Problems::redundancy )
 		{
@@ -566,12 +573,16 @@ void CSolver::ClientCenterFn( CSolver * data, shared_ptr<CCustomer> client )
 #ifdef __VALKOVIC__
 		cout << "Next problem of center arrive" << endl;
 #endif
-		data->queue.push(ProblemData(instance,client));
+		data->queue.push( ProblemData( instance, client ) );
 	}
 #ifdef __VALKOVIC__
 	cout << "Client ended with center problems" << endl;
 #endif
-	data->clients.fetch_sub( 1 );
+	data->clientsMutex.lock();
+	data->clients--;
+	if( data->clients == 0 )
+		data->clientsEnded.notify_all();
+	data->clientsMutex.unlock();
 }
 
 void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
@@ -588,7 +599,12 @@ void CSolver::ClientRedundancyFn( CSolver * data, shared_ptr<CCustomer> client )
 #ifdef __VALKOVIC__
 	cout << "Client ended with redundancy problems" << endl;
 #endif
-	data->clients.fetch_sub( 1 );
+	data->clientsMutex.lock();
+	data->clients--;
+	if( data->clients == 0 )
+		data->clientsEnded.notify_all();
+	data->clientsMutex.unlock();
+
 }
 
 CSolver::CSolver( void ) : clients( 0 )
