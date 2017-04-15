@@ -478,6 +478,16 @@ int RaidResync(void)
         }
     }
 
+    char info[SECTOR_SIZE];
+    memcpy(info,&raid.timestamp,sizeof(unsigned int));
+
+    if(raid._write(raid.brokenDisk,raid.sectors-1,info,1) != 1)
+    {
+        raid.status = RAID_DEGRADED;
+        return 0;
+    }
+
+    raid.brokenDisk = -1;
     raid.status = RAID_OK;
     return 1;
 }

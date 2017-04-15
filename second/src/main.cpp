@@ -21,6 +21,8 @@
 #define RAID_DEVICES 4
 #define DISK_SECTORS 8192
 
+static int blocked = -1;
+
 static FILE  * g_Fp[RAID_DEVICES];
 
 //-------------------------------------------------------------------------------------------------
@@ -33,7 +35,7 @@ int                diskRead                                ( int               d
                                                              void            * data,
                                                              int               sectorCnt )
 {
-    if(device == 2) //TODO my
+    if(device == blocked) //TODO my
         return 0;
 
     if ( device < 0 || device >= RAID_DEVICES )
@@ -53,7 +55,7 @@ int                diskWrite                               ( int               d
                                                              const void      * data,
                                                              int               sectorCnt )
 {
-    if(device == 2) //TODO my
+    if(device == blocked) //TODO my
         return 0;
 
 
@@ -305,6 +307,8 @@ void test1()
 //-------------------------------------------------------------------------------------------------
 int main ( void )
 {
+    blocked = 1;
+
     assert(RaidCreate(NULL) == 0);
     assert(RaidCreate(nullptr) == 0);
 
@@ -348,6 +352,9 @@ int main ( void )
     /* Extensive testing of your RAID implementation ...
      */
 
+    blocked = -1;
+
+    assert(RaidResync()==1);
 
     /* Stop the raid device ...
      */
