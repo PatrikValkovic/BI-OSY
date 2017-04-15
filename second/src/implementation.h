@@ -83,22 +83,22 @@ void RaidStart(TBlkDev* dev)
     raid.getData(dev);
 
     unsigned int timestamps[MAX_RAID_DEVICES];
-    memset(timestamps,0,sizeof(unsigned int) * MAX_RAID_DEVICES);
+    memset(timestamps, 0, sizeof(unsigned int) * MAX_RAID_DEVICES);
     int timestampsPosition[MAX_RAID_DEVICES];
     char data[SECTOR_SIZE];
 
-    for(int i=0;i<raid.devices && raid.countOfBrokenDisks <= 2;i++)
+    for (int i = 0; i < raid.devices && raid.countOfBrokenDisks <= 2; i++)
     {
-        if(raid.read(i,raid.sectors-1,data,1) != 1)
+        if (raid.read(i, raid.sectors - 1, data, 1) != 1)
         {
             raid.brokenDisks[raid.countOfBrokenDisks++] = i;
             continue;
         }
         unsigned int timestamp;
-        memcpy(&timestamp,data,sizeof(unsigned int));
-        for(int j=0;j<MAX_RAID_DEVICES;j++)
+        memcpy(&timestamp, data, sizeof(unsigned int));
+        for (int j = 0; j < MAX_RAID_DEVICES; j++)
         {
-            if(timestamps[j]==0 || timestamps[j]==timestamp)
+            if (timestamps[j] == 0 || timestamps[j] == timestamp)
             {
                 timestamps[j] = timestamp;
                 timestampsPosition[i] = j;
@@ -108,39 +108,39 @@ void RaidStart(TBlkDev* dev)
 
     }
 
-    if(raid.countOfBrokenDisks > 2)
+    if (raid.countOfBrokenDisks > 2)
     {
         raid.status = RAID_FAILED;
         return;
     }
 
     int timestampsCount[MAX_RAID_DEVICES];
-    for(int i=0;i<MAX_RAID_DEVICES;i++)
+    for (int i = 0; i < MAX_RAID_DEVICES; i++)
     {
         timestampsCount[i] = 0;
-        for(int j=0;j<raid.devices;j++)
-            if(timestampsPosition[j]==i)
+        for (int j = 0; j < raid.devices; j++)
+            if (timestampsPosition[j] == i)
                 timestampsCount[i]++;
     }
 
     int maxRepresentation = 0;
-    for(int i=1;i<MAX_RAID_DEVICES;i++)
+    for (int i = 1; i < MAX_RAID_DEVICES; i++)
     {
-        if(timestampsCount[i] > timestampsCount[maxRepresentation])
+        if (timestampsCount[i] > timestampsCount[maxRepresentation])
             maxRepresentation = i;
     }
     raid.timestamp = timestamps[maxRepresentation];
 
-    for(int j=0;j<raid.devices && raid.countOfBrokenDisks<=2;j++)
-        if(timestampsPosition[j]!=j)
+    for (int j = 0; j < raid.devices && raid.countOfBrokenDisks <= 2; j++)
+        if (timestampsPosition[j] != j)
             raid.brokenDisks[raid.countOfBrokenDisks++] = j;
 
 
-    if(raid.countOfBrokenDisks == 0)
+    if (raid.countOfBrokenDisks == 0)
     {
         raid.status = RAID_OK;
     }
-    else if(raid.countOfBrokenDisks > 2)
+    else if (raid.countOfBrokenDisks > 2)
     {
         raid.status = RAID_FAILED;
     }
@@ -154,7 +154,7 @@ void RaidStop(void)
 {
     using namespace Valkovic;
 
-    if(raid.status == RAID_FAILED || raid.status == RAID_STOPPED)
+    if (raid.status == RAID_FAILED || raid.status == RAID_STOPPED)
     {
         raid.status = RAID_STOPPED;
         return;
@@ -163,16 +163,16 @@ void RaidStop(void)
     raid.timestamp++;
 
     char data[SECTOR_SIZE];
-    memcpy(data,&raid.timestamp,sizeof(unsigned int));
+    memcpy(data, &raid.timestamp, sizeof(unsigned int));
 
-    for(int i=0;i<raid.devices;i++)
+    for (int i = 0; i < raid.devices; i++)
     {
-        if(raid.countOfBrokenDisks==1 && raid.brokenDisks[0]==i)
+        if (raid.countOfBrokenDisks == 1 && raid.brokenDisks[0] == i)
             continue;
-        if(raid.countOfBrokenDisks==2 && (raid.brokenDisks[0]==i || raid.brokenDisks[1]==i))
+        if (raid.countOfBrokenDisks == 2 && (raid.brokenDisks[0] == i || raid.brokenDisks[1] == i))
             continue;
 
-        raid.write(i,raid.sectors-1,data,1);
+        raid.write(i, raid.sectors - 1, data, 1);
     }
 
     raid.status = RAID_STOPPED;
@@ -186,7 +186,8 @@ int RaidStatus(void)
 
 int RaidSize(void)
 {
-    return 255;
+    using namespace Valkovic;
+    return (raid.sectors - 1) * (raid.devices - 2);
 }
 
 int RaidRead(int sector, void* data, int sectorCnt)
