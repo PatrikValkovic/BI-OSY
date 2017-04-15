@@ -30,7 +30,7 @@ namespace Valkovic
 
         int read(int diskNumber, int sectorNumber, void* data, int sizeInSectors)
         {
-            if(brokenDisk == diskNumber)
+            if (brokenDisk == diskNumber)
                 return 0;
 
             int readed = this->_read(diskNumber, sectorNumber, data, sizeInSectors);
@@ -51,7 +51,7 @@ namespace Valkovic
 
         int write(int diskNumber, int sectorNumber, const void* data, int sizeInSectors)
         {
-            if(brokenDisk == diskNumber)
+            if (brokenDisk == diskNumber)
                 return 0;
 
             int wrote = this->_write(diskNumber, sectorNumber, data, sizeInSectors);
@@ -143,7 +143,7 @@ void RaidStart(TBlkDev* dev)
         timestampsPosition[i] = -1;
         if (raid.read(i, raid.sectors - 1, data, 1) != 1)
         {
-            if(raid.status == RAID_FAILED)
+            if (raid.status == RAID_FAILED)
                 return;
 
             raid.brokenDisk = i;
@@ -285,13 +285,10 @@ int RaidRead(int sector, void* d, int sectorCnt)
             for (int i = 0; i < raid.devices; i++)
                 if (i != raid.brokenDisk)
                 {
-                    int obtained = raid.read(i,line,buffer,1);
-                    if(obtained != 1)
-                    {
-                        raid.status = RAID_FAILED;
+                    raid.read(i, line, buffer, 1);
+                    if (raid.status == RAID_FAILED)
                         return readed;
-                    }
-                    for(int j=0;j<SECTOR_SIZE;j++)
+                    for (int j = 0; j < SECTOR_SIZE; j++)
                         data[j] = data[j] ^ buffer[j];
                 }
             data += SECTOR_SIZE;
@@ -347,7 +344,8 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         }
         //new XOR value = oldXOR ^ oldData ^ newData
         for (int i = 0; i < SECTOR_SIZE; i++)
-            xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
+            xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i-SECTOR_SIZE];
+
         if (raid.write(line % raid.devices, line, xorBuffer, 1) != 1)
         {
             //cannot write into XOR disk, XOR disk is broken
@@ -362,39 +360,38 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         raid.position(workingSector, column, line);
         int xorDisk = line % raid.devices;
 
-        char oldData[SECTOR_SIZE];
-        if(raid.isNotBroken(column))
+        if (raid.isNotBroken(column))
         {
+            char oldData[SECTOR_SIZE];
             if (raid.read(column, line, oldData, 1) != 1)
             {
                 //old data cannot be read, disk is broken
-                continue;
+                return wrote;
             }
             if (raid.write(column, line, data, 1) != 1)
             {
                 //cannot write data to disk, disk is broken
-                continue;
+                return wrote;
             }
             data += SECTOR_SIZE;
             wrote++;
             workingSector++;
-            if(raid.isNotBroken(xorDisk))
+            if (raid.isNotBroken(xorDisk))
             {
                 //SOLVE XOR
                 char xorBuffer[SECTOR_SIZE];
                 //write to XOR disk
-                if (raid.read(line % raid.devices, line, xorBuffer, 1) != 1)
+                if (raid.read(xorDisk, line, xorBuffer, 1) != 1)
                 {
                     //cannot read from XOR disk, XOR disk is broken
-                    continue;
+                    return wrote;
                 }
-                //new XOR value = oldXOR ^ oldData ^ newData
                 for (int i = 0; i < SECTOR_SIZE; i++)
-                    xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
-                if (raid.write(line % raid.devices, line, xorBuffer, 1) != 1)
+                    xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i-SECTOR_SIZE];
+                if (raid.write(xorDisk, line, xorBuffer, 1) != 1)
                 {
                     //cannot write into XOR disk, XOR disk is broken
-                    continue;
+                    return wrote;
                 }
             }
             else
@@ -406,29 +403,32 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         else //disk is broken
         {
             char xored[SECTOR_SIZE];
-            memset(xored,0,SECTOR_SIZE);
+            memset(xored, 0, SECTOR_SIZE);
             char buffer[SECTOR_SIZE];
+
             //write only to XOR disk
-            for(int i=0;i<raid.devices;i++)
-                if(i != xorDisk && i != column) //i != column je ekvivalentni i == brokenDisk
+            for (int i = 0; i < raid.devices; i++)
+                if (i != xorDisk && i != column) //i != column je ekvivalentni i == brokenDisk
                 {
-                    int obtained = raid.read(i,line,buffer,1);
-                    if(obtained != 1)
-                    {
-                        //RAIF_FAILED....quit function
+                    raid.read(i, line, buffer, 1);
+                    if (raid.status == RAID_FAILED)
                         return wrote;
-                    }
-                    for(int j=0;j<SECTOR_SIZE;j++)
+
+                    for (int j = 0; j < SECTOR_SIZE; j++)
                         xored[j] = xored[j] ^ buffer[j];
                 }
-            for(int j=0;j<SECTOR_SIZE;j++)
+
+            for (int j = 0; j < SECTOR_SIZE; j++)
                 xored[j] = xored[j] ^ data[j];
-            if(raid.write(xorDisk,line,xored,1) == 1)
+
+            if (raid.write(xorDisk, line, xored, 1) != 1)
             {
-                data += SECTOR_SIZE;
-                wrote++;
-                workingSector++;
+                return wrote;
             }
+
+            data += SECTOR_SIZE;
+            wrote++;
+            workingSector++;
         }
     }
 

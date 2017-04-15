@@ -33,7 +33,7 @@ int                diskRead                                ( int               d
                                                              void            * data,
                                                              int               sectorCnt )
 {
-    if(device == 1) //TODO my
+    if(device == 2) //TODO my
         return 0;
 
     if ( device < 0 || device >= RAID_DEVICES )
@@ -53,7 +53,7 @@ int                diskWrite                               ( int               d
                                                              const void      * data,
                                                              int               sectorCnt )
 {
-    if(device == 1) //TODO my
+    if(device == 2) //TODO my
         return 0;
 
 
@@ -149,6 +149,159 @@ TBlkDev          * openDisks                               ( void )
     res -> m_Write   = diskWrite;
     return res;
 }
+
+void test1()
+{
+    int i;
+    int retCode;
+    bool status;
+
+    cout << "Test 1 (writing and reading to all sector by one sector): ";
+    for ( i = 0; i < RaidSize (); i ++ )
+    {
+        char buffer [SECTOR_SIZE];
+
+        retCode = RaidWrite ( i, buffer, 1 );
+        retCode = RaidRead ( i, buffer, 1 );
+    }
+
+    if(RaidStatus() != RAID_DEGRADED)
+        cout << "FAILED" << endl;
+    else
+        cout << "OK" << endl;
+
+    cout << "Test 2 (writing and reading to almost all sector by many sectors): ";
+
+    for ( i = 0; i < RaidSize (); i += 10 ){
+        char buffer2 [10 * SECTOR_SIZE];
+        memset(&buffer2, i, 10 * SECTOR_SIZE);
+
+        retCode = RaidWrite ( i, buffer2, 10 );
+
+    }
+
+    char tempBuffer[10 * SECTOR_SIZE];
+    for ( i = 0; i < RaidSize (); i += 10 ){
+        char buffer3 [10 * SECTOR_SIZE];
+        memset(&tempBuffer, i, 10 * SECTOR_SIZE);
+        retCode = RaidRead ( i, buffer3, 10 );
+        if(memcmp(&tempBuffer, &buffer3, 10 * SECTOR_SIZE) != 0){
+            status = false;
+            break;
+        }
+    }
+    if(RaidStatus() != RAID_DEGRADED || !status)
+        cout << "FAILED" << endl;
+    else
+        cout << "OK" << endl;
+
+
+    cout << "Test 3 (writing and reading to random sectors by various count of sectors): ";
+    char buffer4 [5 * SECTOR_SIZE];
+    char buffer5 [6 * SECTOR_SIZE];
+
+    memset(&buffer4, 4, 5 * SECTOR_SIZE);
+    memset(&buffer5, 5, 6 * SECTOR_SIZE);
+
+    retCode = RaidWrite ( 2000, buffer4, 5 );
+    retCode += RaidWrite ( 3000, buffer4, 5 );
+    retCode += RaidWrite ( 4000, buffer4, 5 );
+    retCode += RaidWrite ( 5000, buffer4, 5 );
+    retCode += RaidWrite ( 6000, buffer4, 5 );
+    retCode += RaidWrite ( 7000, buffer4, 5 );
+    retCode += RaidWrite ( 8000, buffer4, 5 );
+    retCode += RaidWrite ( 9000, buffer4, 5 );
+    retCode += RaidWrite ( 10000, buffer4, 5 );
+    retCode += RaidWrite ( 12000, buffer4, 5 );
+
+    retCode += RaidWrite ( 124, buffer5, 6 );
+    retCode += RaidWrite ( 5443, buffer5, 6 );
+    retCode += RaidWrite ( 1, buffer5, 6 );
+    retCode += RaidWrite ( 1432, buffer5, 6 );
+    retCode += RaidWrite ( 23000, buffer5, 6 );
+    retCode += RaidWrite ( 3333, buffer5, 6 );
+    retCode += RaidWrite ( 18000, buffer5, 6 );
+    retCode += RaidWrite ( 12876, buffer5, 6 );
+    retCode += RaidWrite ( 9787, buffer5, 6 );
+    retCode += RaidWrite ( 24565, buffer5, 6 );
+
+    if(retCode != 110)
+        cout << "return count mishmash, ";
+    char tempBuffer4[5 * SECTOR_SIZE];
+    char tempBuffer5[6 * SECTOR_SIZE];
+
+    retCode = RaidRead ( 2000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 3000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 4000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 5000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 6000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 7000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 8000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 9000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 10000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 12000, tempBuffer4, 5 );
+    if(memcmp(&buffer4, &tempBuffer4, 5 * SECTOR_SIZE) != 0)
+        status = false;
+
+    retCode += RaidRead ( 124, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 5443, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 1, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 1432, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 23000, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 3333, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 18000, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 12876, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 9787, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    retCode += RaidRead ( 24565, tempBuffer5, 6 );
+    if(memcmp(&buffer5, &tempBuffer5, 6 * SECTOR_SIZE) != 0)
+        status = false;
+    if(retCode != 110)
+        cout << "return count mishmash, ";
+
+    if(RaidStatus() != RAID_DEGRADED || !status)
+        cout << "FAILED" << endl;
+    else
+
+        cout << "OK" << endl;
+
+}
+
 //-------------------------------------------------------------------------------------------------
 int main ( void )
 {
@@ -189,6 +342,8 @@ int main ( void )
         assert(memcmp(buffer1,buffer2,SECTOR_SIZE)==0);
 
     }
+
+    //test1();
 
     /* Extensive testing of your RAID implementation ...
      */
