@@ -59,7 +59,7 @@ int RaidCreate(TBlkDev* dev)
     memcpy(servisInformations, &raid.timestamp, sizeof(unsigned int));
 
     int countOfBroken = 0;
-    for (int i = 0; i < raid.devices && countOfBroken < 2; i++)
+    for (int i = 0; i < raid.devices && countOfBroken <= 2; i++)
         if (raid.write(i, raid.sectors - 1, servisInformations, 1) != 1)
         {
             countOfBroken++;
@@ -75,7 +75,73 @@ int RaidCreate(TBlkDev* dev)
 
 void RaidStart(TBlkDev* dev)
 {
+    using namespace Valkovic;
 
+    if (dev == nullptr)
+        return;
+
+    raid.getData(dev);
+
+    unsigned int timestamps[MAX_RAID_DEVICES];
+    memset(timestamps,0,sizeof(unsigned int) * MAX_RAID_DEVICES);
+    int timestampsPosition[MAX_RAID_DEVICES];
+    char data[SECTOR_SIZE];
+
+    for(int i=0;i<raid.devices && raid.countOfBrokenDisks <= 2;i++)
+    {
+        if(raid.read(i,raid.sectors-1,data,1) != 1)
+        {
+            raid.brokenDisks[raid.countOfBrokenDisks++] = i;
+            continue;
+        }
+        unsigned int timestamp;
+        memcpy(&timestamp,data,sizeof(unsigned int));
+        for(int j=0;j<MAX_RAID_DEVICES;j++)
+        {
+            if(timestamps[j]==0 || timestamps[j]==timestamp)
+            {
+                timestamps[j] = timestamp;
+                timestampsPosition[i] = j;
+                break;
+            }
+        }
+
+    }
+
+
+    int timestampsCount[MAX_RAID_DEVICES];
+    for(int i=0;i<MAX_RAID_DEVICES;i++)
+    {
+        timestampsCount[i] = 0;
+        for(int j=0;j<raid.devices;j++)
+            if(timestampsPosition[j]==i)
+                timestampsCount[i]++;
+    }
+
+    int maxRepresentation = 0;
+    for(int i=1;i<MAX_RAID_DEVICES;i++)
+    {
+        if(timestampsCount[i] > timestampsCount[maxRepresentation])
+            maxRepresentation = i;
+    }
+
+    for(int j=0;j<raid.devices && raid.countOfBrokenDisks<=2;j++)
+        if(timestampsPosition[j]!=j)
+            raid.brokenDisks[raid.countOfBrokenDisks++] = j;
+
+    
+    if(raid.countOfBrokenDisks == 0)
+    {
+        raid.status = RAID_OK;
+    }
+    else if(raid.countOfBrokenDisks > 2)
+    {
+        raid.status = RAID_FAILED;
+    }
+    else
+    {
+        raid.status = RAID_DEGRADED;
+    }
 }
 
 void RaidStop(void)
