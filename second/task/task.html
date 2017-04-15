@@ -1,0 +1,563 @@
+<!--?xml version="1.0" encoding="utf-8" ?-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml-transitional.dtd">
+<html><head>
+  <title>valkopat@progtest.fit.cvut.cz - ProgTest</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link href="task_files/css.css" rel="stylesheet" type="text/css">
+  <script src="task_files/shared.js" language="JavaScript" type="text/javascript"></script>
+  
+ </head>
+ <body text="#000000" bgcolor="#828273">
+  <table width="100%" cellspacing="0" cellpadding="0" border="0">
+   <tbody><tr height="25">
+    <td bgcolor="#00ff00" align="left"><span class="navLink"><a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=Main">ProgTest</a>&nbsp;&nbsp;►&nbsp;&nbsp;<a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=Course&amp;Cou=205">BI-OSY (16/17 LS)</a>&nbsp;&nbsp;►&nbsp;&nbsp;<a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=TaskGrp&amp;Cou=205&amp;Tgr=1256">Úloha #2</a>&nbsp;&nbsp;►&nbsp;&nbsp;<b>RAID 6</b></span></td>
+    <td bgcolor="#00ff00" align="right"><a class="navLink" href="https://progtest.fit.cvut.cz/index.php?X=Logout">Logout</a></td>
+   </tr>
+  </tbody></table>
+<br>
+
+
+
+
+ <br>
+ <br>
+   <center>
+   <div class="topLayout">
+    <div class="outBox">
+     <table class="header" width="100%" cellspacing="0" cellpadding="0">
+      <tbody><tr>
+       <td class="header"><b>RAID 6</b></td>
+      </tr>
+     </tbody></table>
+    </div>
+   </div>
+  </center>
+ <form name="form1" method="post" action="?X=TaskU&amp;Cou=205&amp;Tgr=1256&amp;Tsk=1473" enctype="multipart/form-data">
+  <center>
+    <div class="topLayout">
+     <div class="outBox">
+      <table id="maintable" width="100%" cellspacing="0" cellpadding="2" border="0">
+       <colgroup><col width="200">
+       <col>
+       <col width="130">
+
+       </colgroup><tbody><tr>
+        <td class="ltCell" align="left"><b>Termín odevzdání:</b></td>
+        <td class="tCell" align="left"><b>14.05.2017 23:59:59</b></td>
+        <td class="rtCell" id="countdown" align="right">2553289.087 sec</td>
+       </tr>
+
+       <tr>
+        <td class="lCell" align="left"><b>Hodnocení:</b></td>
+        <td class="rCell" colspan="2" align="left"><b>0.0000</b></td>
+       </tr>
+       <tr>
+        <td class="lCell" align="left"><b>Max. hodnocení:</b></td>
+        <td class="rCell" colspan="2" align="left"><b>40.0000</b> (bez bonusů)</td>
+       </tr>
+       <tr>
+        <td class="lCell" align="left"><b>Odevzdaná řešení:</b></td>
+        <td class="rCell" colspan="2" align="left">0 /  60</td>
+       </tr>
+
+       <tr>
+        <td class="lbCell" align="left"><b>Nápovědy:</b></td>
+        <td class="rbCell" colspan="2" align="left">0 / 0</td>
+       </tr>
+
+       <tr>
+        <td class="lrtbCell" colspan="3" align="left"><p>Cílem této práce je podrobněji se seznámit s 
+problematikou fungování řadičů RAID. Vaším úkolem 
+je implementovat SW pro RAID 6. SW, který vyvinete, bude 
+poskytovat funkce, tyto funkce realizují operace s RAID 6 
+svazkem jako s blokovým zařízením (tedy zejména zápis 
+a čtení sektoru). Vlastní ukládání dat budete realizovat
+voláním poskytnutých funkcí, které budou simulovat zápis 
+/ čtení dat na jednotlivé disky. Jedná se o rozšíření 
+jednodušší úlohy RAID 5, pro zvládnutí této úlohy si budete 
+muset nastudovat fungování opravných kódů, například 
+Reed-Solomonovy kódy.</p>
+
+<p>Vaše implementace musí splňovat vlastnosti RAID 6 zařízení, 
+tedy zejména:</p>
+
+<ul>
+ <li>práce <tt>n</tt> zařízeními, kde <tt>n &gt;= 4</tt>,</li>
+ <li>odolnost vůči výpadku až dvou zařízení,</li>
+ <li>rovnoměrné rozkládání I/O operací na jednotlivé disky 
+  (tedy mj. parity nesmí být koncentrované na jednom fyzickém disku),</li>
+ <li>kapacita vzniklého RAID 6 zařízení musí být <tt>n-2</tt> kapacity
+  jednoho zařízení (implementace může mít malý overhead, viz níže).</li>
+</ul>
+
+<p>Vámi implementovaných funkcí je celkem 8:</p>
+
+<pre>#ifndef __PROGTEST__
+#include &lt;cstdio&gt;
+#include &lt;cstdlib&gt;
+#include &lt;cstring&gt;
+#include &lt;cassert&gt;
+#include &lt;cstdint&gt;
+using namespace std;
+
+#define SECTOR_SIZE                     512
+#define MAX_RAID_DEVICES                 16
+#define MAX_DEVICE_SECTORS (1024 * 1024 * 2)
+#define MIN_DEVICE_SECTORS (   4 * 1024 * 2)
+
+#define RAID_OK                           0
+#define RAID_DEGRADED                     1
+#define RAID_FAILED                       2
+#define RAID_STOPPED                      3
+
+struct TBlkDev
+{
+  int             m_Devices;
+  int             m_Sectors;
+  int          (* m_Read )  ( int, int, void *, int );
+  int          (* m_Write ) ( int, int, const void *, int );
+};
+
+#endif /* __PROGTEST__ */
+
+int         RaidCreate             ( TBlkDev    * dev );
+void        RaidStart              ( TBlkDev    * dev );
+void        RaidStop               ( void );
+int         RaidStatus             ( void );
+int         RaidSize               ( void );
+int         RaidRead               ( int          sector,
+                                     void       * data,
+                                     int          sectorCnt );
+int         RaidWrite              ( int          sector,
+                                     const void * data,
+                                     int          sectorCnt );
+int         RaidResync             ( void );
+</pre>
+ 
+
+<p>Význam jednotlivých deklarací:</p>
+<dl>
+ <dt><tt>SECTOR_SIZE</tt></dt><dd>udává velikost jednoho sektoru v bajtech.
+   Sektor je pro blokové zařízení (disky, RAID) jednotkou pro operace, 
+   číst/zapisovat lze pouze celé sektory.</dd>
+ <dt><tt>MAX_RAID_DEVICES</tt></dt><dt></dt><dd>udává max. počet zařízení, ze kterých
+   bude cílový RAID 6 sestaven. Skutečný počet zařízení nikdy nepřekročí
+   tuto mez.</dd>
+ <dt><tt>MAX_DEVICE_SECTORS, MIN_DEVICE_SECTORS</tt></dt><dd>udává minimální
+   a maximální počet sektorů na jednom disku. Skutečná kapacita jednoho
+   disku bude vždy v těchto mezích.</dd>
+ <dt><tt>RAID_OK</tt></dt><dd>označuje stav RAID zařízení kdy zařízení
+   pracuje zcela správně.</dd>
+ <dt><tt>RAID_DEGRADED</tt></dt><dd>označuje stav RAID zařízení kdy zařízení
+   pracuje, ale jeden až dva disky havarovaly.</dd>
+ <dt><tt>RAID_FAILED</tt></dt><dd>označuje stav RAID zařízení kdy zařízení
+   nepracuje, protože havarovaly tři nebo více disků.</dd>
+ <dt><tt>RAID_STOPPED</tt></dt><dd>označuje stav RAID zařízení kdy zařízení
+   nepracuje, protože RAID nebyl ještě sestaven (před zavoláním
+   <tt>RaidStart</tt> nebo byl pozastaven (po zavolání <tt>RaidStop</tt>).</dd>
+ <dt><tt>TBlkDev</tt></dt><dd>je struktura, která je použitá pro I/O
+   operace s jednotlivými disky, které tvoří RAID zařízení. Složka 
+   <tt>m_Devices</tt> udává kolik disků je v RAID zařízení celkem použito (4
+   až MAX_RAID_DEVICES). Složka <tt>m_Sectors</tt> udává celkový počet sektorů 
+   na každém jednom disku. Konečně, složky <tt>m_Read</tt> a
+   <tt>m_Write</tt> jsou ukazatele na funkce, které budete volat při vlastní
+   I/O operaci. Operací je buď čtení sektorů z disku (<tt>m_Read</tt>), nebo 
+   zápis na disk (<tt>m_Write</tt>). Najednou lze číst/zapisovat jeden sektor 
+   nebo více sousedních sektorů. Význam parametrů pro obě volání je stejný:
+   <pre> 
+     TBlkDev * dev;
+     ... 
+     ret = dev -&gt; m_Read ( diskNr, secNr, data, secCnt );
+   </pre>
+   <dl>
+    <dt><tt>diskNr</tt></dt><dd>je číslo disku, kterého se operace týká.
+      Číslo je z rozsahu 0 až <tt>m_Devices - 1</tt>.</dd>
+    <dt><tt>secNr</tt></dt><dd>udává číslo prvního čteného/zapisovaného 
+      sektoru. Čtené/zapisované sektory musí být v rozsahu 0 až
+      <tt>m_Sectors - 1</tt>.</dd>
+    <dt><tt>data</tt></dt><dd>udává paměťový blok, kam budou data z disku
+      načtena (operace čtení) resp. data, která budou zapsaná na disk.
+      Paměťový blok musí mít velikost dostatečnou pro čtený/zapisovaný počet
+      sektorů (viz níže).</dd>
+    <dt><tt>secCnt</tt></dt><dd>určuje počet čtených resp. zapisovaných
+      sektorů. Hodnota 1 znamená zápis jednoho sektoru (tedy efektivně
+      512 B), ... Zápis více sousedních sektorů najednou snižuje režii, tedy 
+      urychluje I/O operace.</dd>
+    <dt><tt>návratová hodnota</tt></dt><dd>určuje počet sektorů, který byl
+      skutečně načten/zapsán. Hodnota nižší než <tt>secCnt</tt> znamená 
+      buď pokus o čtení/zápis za posledním sektorem disku, nebo chybu
+      zařízení.</dd>
+   </dl>
+ </dd>      
+ <dt><tt>RaidCreate</tt></dt><dd>Volání této funkce zapíše na disky 
+  režijní informace, které pro Vaší implementaci RAID potřebujete. 
+  Tato funkce je volána při prvotním vytváření RAID zařízení (po 
+  instalaci nových disků (ekvivalent příkazu <tt>mdadm --create ...</tt> 
+  v Linuxu). Reálný RAID při inicializaci dopočte paritu a poznamenává 
+  si režijní bloky používané při sestavování RAID. Režijní blok např. 
+  obsahuje informace, které disky byly funkční při posledním ukončení RAID 
+  zařízení (např. aby poznal off-line výměnu nefunkčního disku). Vaše 
+  implementace je zjednodušena tím, že nové disky jsou vyplněné samými 
+  nulami, tedy prvotní synchronizaci nemusíte provádět (zde, v
+  <tt>RaidCreate</tt>). Samotné volání <tt>RaidCreate</tt> neinicializuje 
+  RAID zařízení (stále bude ve stavu <tt>RAID_STOPPED</tt>). Parametrem 
+  je struktura pro komunikaci s disky. Návratovou hodnotou funkce je hodnota 
+  0 pro neúspěch, 1 pro úspěch.</dd>
+
+ <dt><tt>RaidStart</tt></dt><dd>Toto volání inicializuje nově vytvořený nebo
+  dříve pozastavený RAID. Funkce načte Vaše režijní struktury z disků a 
+  připraví RAID zařízení pro čtecí/zápisové požadavky. RAID zařízení bude 
+  podle výsledku operace ve stavu <tt>RAID_OK</tt>, <tt>RAID_DEGRADED</tt>
+  nebo <tt>RAID_FAILED</tt>. Tato operace neprovádí žádné pokusy o
+  opravu obsahu (pokud např. jeden disk byl nahrazen). Operace hrubě odpovídá
+  volání <tt>mdadm --assemble ...</tt> v Linuxu. Parametrem volání je 
+  Parametrem je struktura pro  komunikaci s disky.</dd>
+  
+ <dt><tt>RaidStop</tt></dt><dd>Toto volání uloží všechna neuložená data na disky,
+  zapíše Vaše případné režijní informace a převede RAID zařízení do stavu
+  <tt>RAID_STOPPED</tt>. Operace odpovídá volání <tt>mdadm --stop</tt> v
+  Linuxu.</dd>
+  
+ <dt><tt>RaidStatus</tt></dt><dd>Funkce vrátí aktuální stav RAID zařízení,
+  tedy jednu z konstant <tt>RAID_OK</tt>, <tt>RAID_DEGRADED</tt>,
+  <tt>RAID_FAILED</tt> nebo <tt>RAID_STOPPED</tt>.</dd>
+
+ <dt><tt>RaidSize</tt></dt><dd>Funkce vrátí počet dostupných sektorů na RAID
+  zařízení. V ideálním případě by počet sektorů měl být <tt>(počet_disků - 2) *
+  sektorů_na_disk</tt>. Vaše implementace ale může vyžadovat nějaké režijní
+  informace, které si na jednotlivé disky uložíte (např. do prvních nebo do
+  posledních sektorů disku). Touto funkcí tedy vracíte skutečně dostupnou
+  kapacitu, která zbude po odpočtení Vaší režie. Zápisy a čtení na RAID
+  zařízení budou probíhat pouze pro sektory v rozsahu 0 až
+  <tt>RaidSize()-1</tt>. Vaše režie musí být rozumná (nesmí přesáhnout
+  1% celkové kapacity). Referenční řešení alokuje 1 sektor na každém
+  disku.</dd>
+
+ <dt><tt>RaidRead, RaidWrite</tt></dt><dd>Funkce provádějí vlastní
+  čtení/zápis sektorů na RAID zařízení. Význam parametrů je pro obě volání
+  stejný: <tt>sector</tt> udává číslo prvního čteného/zapisovaného sektoru
+  (v rozsahu 0 až <tt>RaidSize()-1</tt>), <tt>data</tt> určují paměťový
+  blok, kam mají být data z RAID zařízení načtena/která mají být uložena a 
+  <tt>sectorCnt</tt> určuje počet čtených/zapisovaných sektorů. Funkce vrátí 
+  počet úspěšně čtených/zapsaných sektorů. Pokud je RAID zařízení ve stavu
+  <tt>RAID_DEGRADED</tt>, funkce hlásí úspěch (je povinností Vaší
+  implementace data správně dopočítat při načítání/ukládání).</dd>
+ 
+ <dt><tt>RaidResync</tt></dt><dd>Pokud byl RAID ve stavu
+  <tt>RAID_DEGRADED</tt>, funkce dopočte obsah na disku / discích, které
+  byly nefunkční. Pokud dopočtení parity uspěje, přejde RAID do stavu
+  <tt>RAID_OK</tt> a funkce vrátí 1. Pokud přepočet neuspěje, funkce vrátí
+  hodnotu 0. Pokud při dopočítávání parity vypadne ten samý disk, zůstane
+  RAID zařízení ve stavu <tt>RAID_DEGRADED</tt>. Pokud by ale při
+  dopočítávání parity vypadl nějaký další disk, může RAID přejít do stavu 
+  <tt>RAID_FAILED</tt>. <b>Pozor!</b> nahrazený disk může být buď
+  nový (pak je vyplněn nulami) nebo se může jednat o disk, který se
+  "vzpamatoval", tedy začal fungovat a má "nějaký náhodný obsah". Obsahu
+  dříve nefunkčního disku tedy nemůžete věřit. Nemůžete věřit ani svým
+  případným servisním záznamům, které jste si dříve na tento disk
+  poznamenali. (Musíte se orientovat podle servisních záznamů na ostatních
+  discích, bude asi vhodné servisní záznmamy nějak verzovat. Např. číslem,
+  které se bude s každým úspěšným Start/Stop zvětšovat.)</dd>
+</dl>
+
+<p>Odevzdávejte zdrojový kód s implementací požadovaných funkcí
+a s případnými dalšími podpůrnými funkcemi, které Vaše implementace potřebuje. 
+Deklaraci struktury <tt>TBlkDev</tt>, definice konstant a vkládání hlavičkových 
+souborů ponechte v bloku podmíněného překladu.  Do Vaší implementace nevkládejte
+funkci <tt>main</tt> ani direktivy pro vkládání hlavičkových souborů.  
+Funkci <tt>main</tt> a hlavičkové soubory lze ponechat pouze v případě,
+že jsou zabalené v bloku podmíněného překladu. Při implementaci
+nepoužívejte STL.</p>
+
+<hr>
+
+<b>Nápověda:</b>
+<ul>
+ <li>Rozhraní je navržené tak, že může existovat nejvýše jedno RAID zařízení
+   v daný okamžik. Pokud tedy si tedy potřebujete uložit nějaká data (např. 
+   strukturu <tt>TBlkDev</tt> po volání <tt>RaidStart</tt>), můžete využít
+   globální proměnné. Počet globálních proměnných ale nepřehánějte, nezapomeňte 
+   na doporučení z PA1/PA2 (referenční řešení ukládá pouze jednu globální
+   proměnnou).</li>
+
+ <li>RAID zařízení v daný okamžik existuje nejvýše jedno, ale testovací
+   prostředí pracuje s více různými RAID zařízeními, které průběžně přepíná
+   (jedno pozastaví, jiné spustí). Nezapomeňte proto ve volání
+   <tt>RaidStop</tt>/<tt>RaidStart</tt> globální proměnné správně 
+   inicializovat/nastavovat. Mj. toto je další dobrý důvod, abyste 
+   globálních proměnné používali co nejméně.</li>
+
+ <li>Uložte si <b>kopii</b> struktury <tt>TBlkDev</tt>, neukládejte si pouze 
+   předaný ukazatel.</li>  
+
+ <li>Ve Vaší implementaci si můžete alokovat paměť (celkem až řádově stovky
+   KiB), součet kapacity disků ale bude několikrát větší než dostupná velikost
+   paměti. Nepokoušejte se řešení oblafnout tím, že byste data ukládali do
+   alokované paměti místo na poskytnuté disky.</li>
+ 
+ <li>Nezapomeňte, že veškeré I/O operace probíhají s celými sektory (tedy s 512
+   B). Tedy např. pokud budete načítat 2 sektory najednou, musíte připravit
+   paměťový blok velikosti 1024 B.</li>
+ 
+ <li>Zápis několika sektorů najednou může I/O operace zrychlit. Počet
+   najednou zapisovaných sektorů ale není rozumné přehánět (i kvůli omezení
+   paměťových alokací).</li>
+ 
+ <li>Testovací prostředí si vede statistiku počtu sektorů
+   čtených/zapisovaných z jednotlivých disků. RAID 6 by měl disky vytěžovat 
+   rovnoměrně, i při výpadku jednoho z disků. Pokud parity umístíte na 
+   dedikované disky, rovnoměrného počtu přístupů nedosáhnete.</li>
+ 
+ <li>Využijte přiložený ukázkový soubor. V souboru je implementován
+   jednoduchý diskový subsystém, který můžete použít jako základ pro 
+   Vaše testování. Pro důkladné otestování bude potřeba dodaný soubor
+   rozšířit, zejména je potřeba implementovat mnohem důkladnější testování
+   obsahu, otestovat odolnosti vůči výpadku a testování obnovy RAID zařízení.</li>
+
+ <li>Vaše implementace je testována pouze jedním vláknem, sekvenčně.  
+   Nezabývejte se zamykáním.</li>
+   
+ <li>Pokud funkce pro čtení/zapisování jednou selže (vrátí počet přečtených/zapsaných 
+   sektorů menší než by podle požadavku správně měla), musíte disk považovat 
+   za vadný. I pokud následná volání vrací úspěch, nemusí být data na disk 
+   zapsaná správně / čtení může vracet nesmyslná data. Ideálně byste neměli disk 
+   po první chybě vůbec používat (ani pro čtení, ani pro zápis).</li> 
+</ul>
+
+<b>Co znamenají jednotlivé testy:</b>
+<ul>
+ <li><b>Vytvoreni noveho pole</b> - vytvoří se nové pole voláním
+  <tt>RaidCreate</tt>. </li>
+
+ <li><b>Normalni operace (disky ok)</b> - nastartuje RAID zařízení a zkusí 
+  provést sérii zápisů a čtení na tomto zařízení. Data se ukládají 2x (na
+  Vaše RAID zařízení a do dalšího úložiště). Obsah obou úložišť je
+  kontrolovaný. V tomto testu všechny disky pracují správně.</li>
+
+ <li><b>Vypadek jednoho disku</b> - testování je stejné jako v minulém
+  bodě, ale jeden disk nepracuje správně.</li>
+
+ <li><b>Vypadek dalšího disku</b> - testování je stejné jako v minulém
+  bodě, ale dva disky nepracují správně.</li>
+
+ <li><b>Obnova pole</b> - degradované pole je obnoveno voláním
+  <tt>RaidResync</tt>. Simuluje obnovu RAID disku bez jeho vypnutí 
+  (on-line).</li>
+
+ <li><b>Start pole (po rebootu)</b> - operace simuluje odpojení 
+  RAID zařízení (<tt>RaidStop</tt>) a jeho následné připojení
+  (<tt>RaidStart</tt>). Na připojeném zařízení se následně provedou
+  čtecí/zápisové operace. Pozor - po volání <tt>RaidStop</tt> byste měli
+  všechna data uložit na disky. Obsah paměti mezi touto dvojicí operací není
+  zachován (garantované je pouze to, co jste si uložili na disk a následně při
+  volání <tt>RaidStart</tt> načetli).</li>
+
+ <li><b>Rozlozeni parity</b> - kontroluje se, zda disky jsou rovnoměrně
+  používané. Pokud je nějaký disk využíván výrazně více než ostatní, není
+  zřejmě parita rovnoměrně rozmístěna mezi disky (RAID4 vs. RAID5/6).</li>
+  
+ <li><b>Vypadek jineho disku</b> - simuluje výpadek jiného disku, pole 
+  je testováno v degradovaném režimu. Následně je pole v tomto degradovaném
+  režimu zastaveno (<tt>RaidStop</tt>).</li>
+
+ <li><b>Obnova pole (off-line replace)</b> - pole je nastartováno s tím, že
+  vadný disk byl během odstávky vyměněn. Po nastartování pole
+  (<tt>RaidStart</tt>) je spuštěna obnova (<tt>RaidResync</tt>). Opět,
+  mezi odstavením pole v minulém testu a nastartováním pole v tomto testu
+  nemáte zachované žádné proměnné.</li>
+  
+ <li><b>Reakce na vypadek vice disku</b> - simuluje výpadek tří disků.
+  RAID6 samozřejmě takový výpadek nedokáže překlenout a musí přejít do
+  režimu FAILED.</li>
+</ul>
+
+</td>
+       </tr>
+
+
+       <tr>
+        <td class="ltbCell" colspan="2" align="left"><b>Vzorová data:</b></td>
+        <td class="rtbCell" align="center"><div class="but1 w120"><div class="but2"><a class="butLink" href="https://progtest.fit.cvut.cz/index.php?X=TaskS&amp;Cou=205&amp;Tgr=1256&amp;Tsk=1473">Download</a></div></div></td>
+       </tr>
+
+
+
+
+
+
+       <tr>
+ 
+        <td class="ltbCell" valign="top" align="left"><b>Odevzdat:</b></td>
+        <td class="tbCell" valign="top" align="left"><input class="std" name="FILE" type="file"></td>
+        <td class="rtbCell" valign="top"><div class="w120 outButton"><input name="S" value="Odevzdat" class="updButton" type="submit"></div></td>
+ 
+       </tr>
+
+
+
+
+
+
+
+
+      </tbody></table>
+     </div>
+    </div>
+
+
+ <br>
+ <div class="topLayout">
+  <div class="outBox">
+   <table id="reftable" width="100%" cellspacing="0" cellpadding="2" border="0">
+   <tbody><tr>
+    <td class="ltbSepCell" align="left"><input name="SHOW_REF" onchange="showRefSolution()" type="checkbox">&nbsp;<b>Referenční řešení</b></td>
+    <td class="rtbSepCell" align="right">&nbsp;</td>
+   </tr>
+   <tr style="display: none;">
+    <td class="lrtbCell" colspan="2" align="left"><ul><li><b>Hodnotitel: automat</b><ul><li>Program zkompilován</li><li>Test 'Vytvoreni noveho pole': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.015 s (limit: 10.000 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Normalni operace (disky ok)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.481 s (limit: 9.985 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Vypadek jednoho disku': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.805 s (limit: 9.504 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Vypadek druheho disku': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.999 s (limit: 8.699 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Obnova pole (hot replace)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 100.00 %</li><li>Celková doba běhu: 0.089 s (limit: 7.700 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Start pole (po rebootu)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 75.00 %</li><li>Celková doba běhu: 0.635 s (limit: 12.000 s)</li><li>Využití paměti: 127912 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Vypadek jineho disku': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 75.00 %</li><li>Celková doba běhu: 0.799 s (limit: 11.365 s)</li><li>Využití paměti: 127912 KiB (limit: 140266 KiB)</li><li>Úspěch v závazném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Obnova pole (off-line replace)': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 75.00 %</li><li>Celková doba běhu: 0.168 s (limit: 8.000 s)</li><li>Využití paměti: 127912 KiB (limit: 140266 KiB)</li><li>Úspěch v nepovinném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Rozlozeni parity': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 75.00 %</li><li>Celková doba běhu: 0.586 s (limit: 7.832 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v nepovinném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Test 'Reakce na vypadek vice disku': Úspěch<ul><li>Dosaženo: 100.00 %, požadováno: 75.00 %</li><li>Celková doba běhu: 0.092 s (limit: 7.246 s)</li><li>Využití paměti: 127916 KiB (limit: 140266 KiB)</li><li>Úspěch v nepovinném testu, hodnocení: 100.00 %</li></ul></li>
+<li>Celkové hodnocení: 100.00 % (= 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00 * 1.00)</li></ul></li><li>Celkové procentní hodnocení: 100.00 %</li><li>Bonus za včasné odevzdání: 4.00</li><li>Celkem bodů: 1.00 * ( 40.00 + 4.00 ) = 44.00</li></ul></td>
+   </tr>
+    <tr style="display: none;">
+  <td class="ltbCell" align="left"><b>SW metriky:</b></td>
+  <td class="rtbCell" colspan="2" align="left">
+   <table cellpadding="2" border="0">
+    <tbody><tr>
+     <td>&nbsp;</td>
+     <td class="ac">Celkem</td>
+     <td class="ac">Průměr</td>
+     <td class="ac">Maximum</td>
+     <td>Jméno funkce</td>
+    </tr>
+    <tr>
+     <td>Funkce:</td>
+     <td class="ar"><b>36</b></td>
+     <td class="ar">--</td>
+     <td class="ar">--</td>
+     <td>--</td>
+    </tr>
+    <tr>
+     <td>Řádek kódu:</td>
+     <td class="ar"><b>704</b></td>
+     <td class="ar"><span class="textOk">19.56 ± 16.62</span></td>
+     <td class="ar"><span class="textWarn">74</span></td>
+     <td><tt>fillEncoderCopy(CRSEncoder &amp;,int,int,int,uint8_t *,int,uint8_t *,int,uint8_t *)</tt></td>
+    </tr>
+    <tr>
+     <td>Cyklomatická složitost:</td>
+     <td class="ar"><b>202</b></td>
+     <td class="ar"><span class="textOk">5.61 ± 5.21</span></td>
+     <td class="ar"><span class="textWarn">22</span></td>
+     <td><tt>Resync(void)</tt></td>
+    </tr>
+   </tbody></table>
+  </td>
+ </tr>
+   </tbody></table>
+  </div>
+ </div>
+
+
+
+
+
+  </center>
+ </form>
+
+
+
+
+
+
+
+
+<script language="javascript" type="text/javascript">
+<!--
+
+var deadLine = new Date ( 1494799199 * 1000 );
+
+function CBpressed ( num )
+ {
+   var pre, cb;
+
+   cb = MM_findObj ( "cb_" + num );
+   pre = MM_findObj ( "pre_" + num );
+   if ( cb != null && pre != null )
+    {
+      pre . style . display = cb . checked ? "block" : "none";
+    }
+ }
+
+function unlockAdvice ( url )
+ {
+   if ( confirm ( 'Máte k dispozici pouze omezený počet nápověd. Navíc, použití nápovědy může snížit bodové hodnocení. Opravdu chcete zpřístupnit tuto nápovědu?' ) )
+    this . location = url;
+ }
+
+function setCountdown ( )
+ {
+   var d = new Date ();
+   var x = ( deadLine . getTime () - d . getTime () );
+   var tgt = document . getElementById ( "countdown" );
+
+   if ( x > 0 )
+    {
+      var s = Math . floor ( x / 1000 );
+      var ms = (x % 1000) + "";
+
+      while ( ms . length  < 3 ) ms = "0" + ms;
+
+      tgt . innerHTML = s + "." + ms + " sec";
+
+      window . setTimeout ( setCountdown, 117 );
+    }
+   else
+    {
+      tgt . innerHTML = '&nbsp;';
+    }
+ }
+
+function showRefSolution ( )
+ {
+   var t = document . getElementById ( "reftable" );
+   var x = document . getElementsByName ( "SHOW_REF" )[0];
+
+   if ( ! x ) return;
+   var r1 = t . rows[1], r2 = t . rows[2];
+
+   if ( x . checked )
+    {
+      r1 . style . display = "";
+      if ( r2 ) r2 . style . display = "";
+    }
+   else
+    {
+      r1 . style . display = "none";
+      if ( r2 ) r2 . style . display = "none";
+    }
+ }
+
+
+setCountdown ();
+showRefSolution ();
+
+// -->
+</script>
+
+
+
+
+
+ 
+
+
+</body></html>
+<!-- Template run time: 0.020104885101318 sec -->
