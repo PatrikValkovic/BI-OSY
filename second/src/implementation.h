@@ -33,7 +33,7 @@ namespace Valkovic
             int readed = this->_read(diskNumber, sectorNumber, data, sizeInSectors);
             if (readed != sizeInSectors)
             {
-                if(brokenDisk != -1)
+                if (brokenDisk != -1 && brokenDisk != diskNumber)
                 {
                     status = RAID_FAILED;
                 }
@@ -51,7 +51,7 @@ namespace Valkovic
             int wrote = this->_write(diskNumber, sectorNumber, data, sizeInSectors);
             if (wrote != sizeInSectors)
             {
-                if(brokenDisk != -1)
+                if (brokenDisk != -1)
                 {
                     status = RAID_FAILED;
                 }
@@ -66,7 +66,7 @@ namespace Valkovic
 
         inline bool isNotBroken(int disk) const
         {
-            return brokenDisk == -1 || brokenDisk != disk;
+            return brokenDisk != disk;
         }
 
         inline bool isBroken(int disk) const
@@ -81,7 +81,7 @@ namespace Valkovic
 
             int sectorAtBeginOfLine = line * (devices - 1);
             int countOfSteps = sector - sectorAtBeginOfLine;
-            if(XORcolumn <= countOfSteps)
+            if (XORcolumn <= countOfSteps)
                 countOfSteps++;
             column = countOfSteps;
         }
@@ -136,7 +136,7 @@ void RaidStart(TBlkDev* dev)
     {
         if (raid.read(i, raid.sectors - 1, data, 1) != 1)
         {
-            if(raid.brokenDisk != -1)
+            if (raid.brokenDisk != -1)
             {
                 raid.status = RAID_FAILED;
                 return;
@@ -178,7 +178,7 @@ void RaidStart(TBlkDev* dev)
     for (int j = 0; j < raid.devices; j++)
         if (timestampsPosition[j] != maxRepresentation)
         {
-            if(raid.brokenDisk != -1)
+            if (raid.brokenDisk != -1)
             {
                 raid.status = RAID_FAILED;
                 return;
@@ -214,7 +214,7 @@ void RaidStop(void)
 
     for (int i = 0; i < raid.devices; i++)
     {
-        if(raid.brokenDisk == i)
+        if (raid.brokenDisk == i)
             continue;
 
         raid.write(i, raid.sectors - 1, data, 1);
@@ -232,7 +232,7 @@ int RaidStatus(void)
 int RaidSize(void)
 {
     using namespace Valkovic;
-    return (raid.sectors - 1) * (raid.devices - 2);
+    return (raid.sectors - 1) * (raid.devices - 1);
 }
 
 int RaidRead(int sector, void* d, int sectorCnt)
@@ -266,41 +266,29 @@ int RaidRead(int sector, void* d, int sectorCnt)
         int line, column;
         raid.position(workingSector, column, line);
 
-        conditions:
         if (raid.isNotBroken(column) && raid.read(column, line, data, 1) == 1)
-        {
+        { //other disk is broken
             data += SECTOR_SIZE;
             workingSector++;
             readed++;
         }
-
-        if(raid.isBroken(column) && raid.countOfBrokenDisks == 1) //this is only damaged disk
+        else //disk is broken
         {
-            int XORcolumn = line % raid.devices;
-            int REEDcolumn = (XORcolumn+1) % raid.devices;
-
+            memset(data, 0, SECTOR_SIZE);
             char buffer[SECTOR_SIZE];
-            memset(data,0,SECTOR_SIZE);
 
-            for(int i=0;i<raid.devices && raid.status == RAID_DEGRADED;i++)
-                if(i != REEDcolumn && i != column)
+            for (int i = 0; i < raid.devices; i++)
+                if (i != raid.brokenDisk)
                 {
-                    int x = raid.read(i, line, buffer, 1);
-                    if (x == 1)
-                        for (int j = 0; j < SECTOR_SIZE; j++)
-                            data[j] = data[j] ^ buffer[j];
-                    else
-                        goto conditions;
+                    int obtained = raid.read(i,line,buffer,1);
+                    if(obtained != 1)
+                    {
+                        raid.status = RAID_FAILED;
+                        return readed;
+                    }
+                    for(int j=0;j<SECTOR_SIZE;j++)
+                        data[j] = data[j] ^ buffer[j];
                 }
-            data += SECTOR_SIZE;
-            workingSector++;
-            readed++;
-        }
-
-
-        if(raid.isBroken(column) && raid.countOfBrokenDisks == 2) //this and another disk is broken
-        {
-            //TODO
         }
     }
 
@@ -326,19 +314,19 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         raid.position(workingSector, column, line);
 
         char oldData[SECTOR_SIZE];
-        if(raid.read(line % raid.devices,line,oldData,1) != 1)
+        if (raid.read(line % raid.devices, line, oldData, 1) != 1)
         {
             //old data cannot be read, disk is broken
             continue;
         }
-        if(raid.write(column,line,data,1) != 1)
+        if (raid.write(column, line, data, 1) != 1)
         {
             //cannot write data to disk, disk is broken
             continue;
         }
         char xorBuffer[SECTOR_SIZE];
         //write to XOR disk
-        if(raid.read(line % raid.devices,line,xorBuffer,1) != 1)
+        if (raid.read(line % raid.devices, line, xorBuffer, 1) != 1)
         {
             //cannot read from XOR disk, XOR disk is broken
             //ignore it, next loop will switch do DEGRADED
@@ -349,10 +337,10 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         }
 
         //new XOR value = oldXOR ^ oldData ^ newData
-        for(int i=0;i<SECTOR_SIZE;i++)
+        for (int i = 0; i < SECTOR_SIZE; i++)
             xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
 
-        if(raid.write(line % raid.devices,line,xorBuffer,1) != 1)
+        if (raid.write(line % raid.devices, line, xorBuffer, 1) != 1)
         {
             //cannot write into XOR disk, XOR disk is broken
             //ignore it, next loop will swich to DEGRADED
@@ -377,16 +365,16 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         int reedDisk = (xorDisk + 1) % raid.devices;
 
 
-        if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        if (raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
         {
             char oldData[SECTOR_SIZE];
             //Writable disk is OK
-            if(raid.read(column,line,oldData,1) != 1)
+            if (raid.read(column, line, oldData, 1) != 1)
             {
                 //canot read from disk, broken
                 continue;
             }
-            if(raid.write(column,line,data,1) != 1)
+            if (raid.write(column, line, data, 1) != 1)
             {
                 //cannot write to disk, broken
                 continue;
@@ -397,7 +385,7 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
             workingSector++;
 
             char xorBuffer[SECTOR_SIZE];
-            if(raid.read(xorDisk,line,xorBuffer,1) != 1)
+            if (raid.read(xorDisk, line, xorBuffer, 1) != 1)
             {
                 //cannot read from XOR disk
                 //ignore, XOR disk just broke
@@ -405,10 +393,10 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
             }
 
             //new XOR value = oldXOR ^ oldData ^ newData
-            for(int i=0;i<SECTOR_SIZE;i++)
+            for (int i = 0; i < SECTOR_SIZE; i++)
                 xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
 
-            if(raid.write(xorDisk,line,xorBuffer,1) != 1)
+            if (raid.write(xorDisk, line, xorBuffer, 1) != 1)
             {
                 //cannot write to XOR disk
                 //ignore, XOR disk just broke
@@ -416,25 +404,25 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
             }
 
             writeREED1:
-                continue;
+            continue;
             //TODO write to REED file
         }
-        else if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk)) //finished
+        else if (raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk)) //finished
         {
             char oldData[SECTOR_SIZE];
             //Writable disk is OK
-            if(raid.read(column,line,oldData,1) != 1)
+            if (raid.read(column, line, oldData, 1) != 1)
             {
                 //canot read from disk, broken
                 continue;
             }
-            if(raid.write(column,line,data,1) != 1)
+            if (raid.write(column, line, data, 1) != 1)
             {
                 //cannot write to disk, broken
                 continue;
             }
             char xorBuffer[SECTOR_SIZE];
-            if(raid.read(xorDisk,line,xorBuffer,1) != 1)
+            if (raid.read(xorDisk, line, xorBuffer, 1) != 1)
             {
                 //cannot read from XOR disk
                 //ignore, XOR disk just broke
@@ -445,10 +433,10 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
             }
 
             //new XOR value = oldXOR ^ oldData ^ newData
-            for(int i=0;i<SECTOR_SIZE;i++)
+            for (int i = 0; i < SECTOR_SIZE; i++)
                 xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
 
-            if(raid.write(xorDisk,line,xorBuffer,1) != 1)
+            if (raid.write(xorDisk, line, xorBuffer, 1) != 1)
             {
                 //cannot write to XOR disk
                 //ignore, XOR disk just broke
@@ -458,27 +446,27 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
                 continue;
             }
         }
-        else if(raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        else if (raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
         {
 
         }
-        else if(raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isBroken(reedDisk))
+        else if (raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isBroken(reedDisk))
         {
 
         }
-        if(raid.isBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        if (raid.isBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
         {
 
         }
-        else if(raid.isBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk))
+        else if (raid.isBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk))
         {
 
         }
-        else if(raid.isBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        else if (raid.isBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
         {
 
         }
-        else if(raid.isBroken(column) && raid.isBroken(xorDisk) && raid.isBroken(reedDisk))
+        else if (raid.isBroken(column) && raid.isBroken(xorDisk) && raid.isBroken(reedDisk))
         {
 
         }
