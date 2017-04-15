@@ -36,7 +36,7 @@ namespace Valkovic
             return this->_read(diskNumber, sectorNumber, data, sizeInSectors);
         }
 
-        int write(int diskNumber, int sectorNumber, void* data, int sizeInSectors)
+        int write(int diskNumber, int sectorNumber,const void* data, int sizeInSectors)
         {
             return this->_write(diskNumber, sectorNumber, data, sizeInSectors);
         }
@@ -190,26 +190,98 @@ int RaidSize(void)
     return (raid.sectors - 1) * (raid.devices - 2);
 }
 
-int RaidRead(int sector, void* data, int sectorCnt)
+int RaidRead(int sector, void* d, int sectorCnt)
 {
     using namespace Valkovic;
 
-    int line = sector / (raid.devices - 2);
-    int XORcolumn = line % raid.devices;
-    int REEDcolumn = (XORcolumn + 1) % raid.devices;
+    if(raid.status == RAID_FAILED)
+        return 0;
 
-    return sectorCnt;
+    char* data = (char*)d;
+
+    int readed = 0;
+    int workingSector = sector;
+    int endSector = (sector+sectorCnt) > RaidSize() ? RaidSize() : (sector+sectorCnt);
+
+    for(;workingSector<endSector && raid.status == RAID_OK;workingSector++)
+    {
+        int line = workingSector / (raid.devices - 2);
+        int XORcolumn = line % raid.devices;
+        int REEDcolumn = (XORcolumn + 1) % raid.devices;
+        int column;
+
+        int sectorAtBeginOfLine = line * (raid.devices - 2);
+        for(column=0;sectorAtBeginOfLine>0;column++)
+        {
+            if(column==XORcolumn || column == REEDcolumn)
+                continue;
+            else
+                sectorAtBeginOfLine--;
+        }
+
+        //line and sector correct
+        if(raid.read(column,line,data,1) != 1)
+            raid.brokenDisks[raid.countOfBrokenDisks++] = column;
+        else
+        {
+            data += SECTOR_SIZE;
+            readed++;
+        }
+    }
+
+    for(;workingSector<endSector && raid.status == RAID_DEGRADED;workingSector++)
+    {
+        //TODO
+    }
+
+    return readed;
 }
 
-int RaidWrite(int sector, const void* data, int sectorCnt)
+int RaidWrite(int sector, const void* d, int sectorCnt)
 {
     using namespace Valkovic;
 
-    int line = sector / (raid.devices - 2);
-    int XORcolumn = line % raid.devices;
-    int REEDcolumn = (XORcolumn + 1) % raid.devices;
+    if(raid.status == RAID_FAILED)
+        return 0;
 
-    return sectorCnt;
+    const char* data = (const char*)d;
+
+    int wrote = 0;
+    int workingSector = sector;
+    int endSector = (sector+sectorCnt) > RaidSize() ? RaidSize() : (sector+sectorCnt);
+
+    for(;workingSector<endSector && raid.status == RAID_OK;workingSector++)
+    {
+        int line = workingSector / (raid.devices - 2);
+        int XORcolumn = line % raid.devices;
+        int REEDcolumn = (XORcolumn + 1) % raid.devices;
+        int column;
+
+        int sectorAtBeginOfLine = line * (raid.devices - 2);
+        for(column=0;sectorAtBeginOfLine>0;column++)
+        {
+            if(column==XORcolumn || column == REEDcolumn)
+                continue;
+            else
+                sectorAtBeginOfLine--;
+        }
+
+        //line and sector correct
+        if(raid.write(column,line,data,1) != 1)
+            raid.brokenDisks[raid.countOfBrokenDisks++] = column;
+        else
+        {
+            data += SECTOR_SIZE;
+            wrote++;
+        }
+    }
+
+    for(;workingSector<endSector && raid.status == RAID_DEGRADED;workingSector++)
+    {
+        //TODO
+    }
+
+    return wrote;
 }
 
 int RaidResync(void)

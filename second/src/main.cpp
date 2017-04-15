@@ -164,6 +164,8 @@ int main ( void )
 
     RaidStart ( dev );
 
+    assert(RaidStatus() == RAID_OK);
+
     /* your raid device shall be up.
      * try to read and write all RAID sectors:
      */
