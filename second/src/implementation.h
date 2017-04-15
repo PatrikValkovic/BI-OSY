@@ -79,7 +79,7 @@ namespace Valkovic
 
             int sectorAtBeginOfLine = line * (devices - 2);
             int countOfSteps = sector - sectorAtBeginOfLine;
-            for (column = 0; countOfSteps > 0; column++)
+            for (column = 0; countOfSteps > 0 || XORcolumn==column || REEDcolumn==column; column++)
             {
                 if (column == XORcolumn || column == REEDcolumn)
                     continue;
