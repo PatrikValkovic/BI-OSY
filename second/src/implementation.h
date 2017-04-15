@@ -327,13 +327,46 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         int line, column;
         raid.position(workingSector, column, line);
 
-        //line and sector correct
-        if (raid.write(column, line, data, 1) == 1)
+        char oldData[SECTOR_SIZE];
+        if(raid.read(line % raid.devices,line,oldData,1) != 1)
         {
+            //old data cannot be read, disk is broken
+            continue;
+        }
+        if(raid.write(column,line,data,1) != 1)
+        {
+            //cannot write data to disk, disk is broken
+            continue;
+        }
+        char xorBuffer[SECTOR_SIZE];
+        //write to XOR disk
+        if(raid.read(line % raid.devices,line,xorBuffer,1) != 1)
+        {
+            //cannot read from XOR disk, XOR disk is broken
+            //ignore it, next loop will switch do DEGRADED
             data += SECTOR_SIZE;
             wrote++;
             workingSector++;
+            continue;
         }
+
+        //new XOR value = oldXOR ^ oldData ^ newData
+        for(int i=0;i<SECTOR_SIZE;i++)
+            xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
+
+        if(raid.write(line % raid.devices,line,xorBuffer,1) != 1)
+        {
+            //cannot write into XOR disk, XOR disk is broken
+            //ignore it, next loop will swich to DEGRADED
+            data += SECTOR_SIZE;
+            wrote++;
+            workingSector++;
+            continue;
+        }
+
+        data += SECTOR_SIZE;
+        wrote++;
+        workingSector++;
     }
 
     for (; workingSector < endSector && raid.status == RAID_DEGRADED; workingSector++)
