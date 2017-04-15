@@ -268,13 +268,39 @@ int RaidRead(int sector, void* d, int sectorCnt)
         int line, column;
         raid.position(workingSector, column, line);
 
+        conditions:
         if (raid.isNotBroken(column) && raid.read(column, line, data, 1) == 1)
         {
             data += SECTOR_SIZE;
             workingSector++;
             readed++;
         }
-        else
+
+        if(raid.isBroken(column) && raid.countOfBrokenDisks == 1) //this is only damaged disk
+        {
+            int XORcolumn = line % raid.devices;
+            int REEDcolumn = (XORcolumn+1) % raid.devices;
+
+            char buffer[SECTOR_SIZE];
+            memset(data,0,SECTOR_SIZE);
+
+            for(int i=0;i<raid.devices && raid.status == RAID_DEGRADED;i++)
+                if(i != REEDcolumn && i != column)
+                {
+                    int x = raid.read(i, line, buffer, 1);
+                    if (x == 1)
+                        for (int j = 0; j < SECTOR_SIZE; j++)
+                            data[j] = data[j] ^ buffer[j];
+                    else
+                        goto conditions;
+                }
+            data += SECTOR_SIZE;
+            workingSector++;
+            readed++;
+        }
+
+
+        if(raid.isBroken(column) && raid.countOfBrokenDisks == 2) //this and another disk is broken
         {
             //TODO
         }
