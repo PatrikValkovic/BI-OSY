@@ -154,7 +154,7 @@ void test1()
 {
     int i;
     int retCode;
-    bool status;
+    bool status = true;
 
     cout << "Test 1 (writing and reading to all sector by one sector): ";
     for ( i = 0; i < RaidSize (); i ++ )
@@ -185,7 +185,7 @@ void test1()
         char buffer3 [10 * SECTOR_SIZE];
         memset(&tempBuffer, i, 10 * SECTOR_SIZE);
         retCode = RaidRead ( i, buffer3, 10 );
-        if(memcmp(&tempBuffer, &buffer3, 10 * SECTOR_SIZE) != 0){
+        if(memcmp(tempBuffer, buffer3, retCode * SECTOR_SIZE) != 0){
             status = false;
             break;
         }
@@ -343,7 +343,7 @@ int main ( void )
 
     }
 
-    //test1();
+    test1();
 
     /* Extensive testing of your RAID implementation ...
      */

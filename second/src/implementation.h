@@ -6,7 +6,7 @@ namespace Valkovic
 {
     class raidInstance
     {
-    private:
+    public:
         int (* _read )(int, int, void*, int);
         int (* _write )(int, int, const void*, int);
     public:
@@ -266,7 +266,7 @@ int RaidRead(int sector, void* d, int sectorCnt)
         }
     }
 
-    for (; workingSector < endSector && raid.status == RAID_DEGRADED; workingSector++)
+    for (; workingSector < endSector && raid.status == RAID_DEGRADED; )
     {
         int line, column;
         raid.position(workingSector, column, line);
@@ -317,6 +317,8 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
     {
         int line, column;
         raid.position(workingSector, column, line);
+        int xorDisk = line % raid.devices;
+
 
         char oldData[SECTOR_SIZE];
         if (raid.read(column, line, oldData, 1) != 1)
@@ -336,7 +338,7 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         //SOLVE XOR
         char xorBuffer[SECTOR_SIZE];
         //write to XOR disk
-        if (raid.read(line % raid.devices, line, xorBuffer, 1) != 1)
+        if (raid.read(xorDisk, line, xorBuffer, 1) != 1)
         {
             //cannot read from XOR disk, XOR disk is broken
             //ignore it, next loop will switch do DEGRADED
@@ -346,7 +348,7 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         for (int i = 0; i < SECTOR_SIZE; i++)
             xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i-SECTOR_SIZE];
 
-        if (raid.write(line % raid.devices, line, xorBuffer, 1) != 1)
+        if (raid.write(xorDisk, line, xorBuffer, 1) != 1)
         {
             //cannot write into XOR disk, XOR disk is broken
             //ignore it, next loop will swich to DEGRADED
@@ -373,9 +375,11 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
                 //cannot write data to disk, disk is broken
                 return wrote;
             }
+
             data += SECTOR_SIZE;
             wrote++;
             workingSector++;
+
             if (raid.isNotBroken(xorDisk))
             {
                 //SOLVE XOR
@@ -388,6 +392,7 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
                 }
                 for (int i = 0; i < SECTOR_SIZE; i++)
                     xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i-SECTOR_SIZE];
+
                 if (raid.write(xorDisk, line, xorBuffer, 1) != 1)
                 {
                     //cannot write into XOR disk, XOR disk is broken
@@ -437,5 +442,42 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
 
 int RaidResync(void)
 {
-    return 255;
+    using namespace Valkovic;
+
+    if(raid.status == RAID_OK || raid.status == RAID_STOPPED || raid.status== RAID_FAILED)
+        return 0;
+
+    for(int i=0;i<raid.sectors;i++)
+    {
+        char writeBuffer[SECTOR_SIZE];
+        char readBuffer[SECTOR_SIZE];
+        memset(writeBuffer,0,SECTOR_SIZE);
+
+        //read data
+        for(int j=0;j<raid.devices;j++)
+        {
+            if(j==raid.brokenDisk)
+                continue;
+
+            if(raid._read(j,i,readBuffer,1) != 1)
+            {
+                //read from another disk failed
+                raid.status = RAID_FAILED;
+                return 0;
+            }
+
+            for(int k=0;k<SECTOR_SIZE;k++)
+                writeBuffer[k] = writeBuffer[k] ^ readBuffer[k];
+        }
+
+        //write data
+        if(raid._write(raid.brokenDisk,i,writeBuffer,1) != 1)
+        {
+            raid.status = RAID_DEGRADED;
+            return 0;
+        }
+    }
+
+    raid.status = RAID_OK;
+    return 1;
 }
