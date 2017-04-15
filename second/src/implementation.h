@@ -34,10 +34,10 @@ namespace Valkovic
         int read(int diskNumber, int sectorNumber, void* data, int sizeInSectors)
         {
             int readed = this->_read(diskNumber, sectorNumber, data, sizeInSectors);
-            if( readed != sizeInSectors)
+            if (readed != sizeInSectors)
             {
                 brokenDisks[countOfBrokenDisks++] = diskNumber;
-                if(countOfBrokenDisks <= 2)
+                if (countOfBrokenDisks <= 2)
                     status = RAID_DEGRADED;
                 else
                     status = RAID_FAILED;
@@ -48,10 +48,10 @@ namespace Valkovic
         int write(int diskNumber, int sectorNumber, const void* data, int sizeInSectors)
         {
             int wrote = this->_write(diskNumber, sectorNumber, data, sizeInSectors);
-            if( wrote != sizeInSectors)
+            if (wrote != sizeInSectors)
             {
                 brokenDisks[countOfBrokenDisks++] = diskNumber;
-                if(countOfBrokenDisks <= 2)
+                if (countOfBrokenDisks <= 2)
                     status = RAID_DEGRADED;
                 else
                     status = RAID_FAILED;
@@ -71,7 +71,7 @@ namespace Valkovic
             return !isNotBroken(disk);
         }
 
-        void position(int sector, int &column, int& line) const
+        void position(int sector, int& column, int& line) const
         {
             line = sector / (devices - 2);
             int XORcolumn = line % devices;
@@ -252,8 +252,8 @@ int RaidRead(int sector, void* d, int sectorCnt)
 
     for (; workingSector < endSector && raid.status == RAID_OK;)
     {
-        int line,column;
-        raid.position(workingSector,column,line);
+        int line, column;
+        raid.position(workingSector, column, line);
 
         if (raid.read(column, line, data, 1) == 1)
         {
@@ -265,7 +265,19 @@ int RaidRead(int sector, void* d, int sectorCnt)
 
     for (; workingSector < endSector && raid.status == RAID_DEGRADED; workingSector++)
     {
-        //TODO
+        int line, column;
+        raid.position(workingSector, column, line);
+
+        if (raid.isNotBroken(column) && raid.read(column, line, data, 1) == 1)
+        {
+            data += SECTOR_SIZE;
+            workingSector++;
+            readed++;
+        }
+        else
+        {
+            //TODO
+        }
     }
 
     return readed;
@@ -286,8 +298,8 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
 
     for (; workingSector < endSector && raid.status == RAID_OK;)
     {
-        int line,column;
-        raid.position(workingSector,column,line);
+        int line, column;
+        raid.position(workingSector, column, line);
 
         //line and sector correct
         if (raid.write(column, line, data, 1) == 1)
