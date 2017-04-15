@@ -175,9 +175,9 @@ int main ( void )
         char buffer1 [SECTOR_SIZE] = {'a','b','c','d'};
         char buffer2 [SECTOR_SIZE] = {'x', 'y', 'y', 'z'};
 
-        retCode = RaidRead ( i, buffer1, 1 );
+        retCode = RaidWrite ( i, buffer1, 1 );
         assert(retCode == 1);
-        retCode = RaidWrite ( i, buffer2, 1 );
+        retCode = RaidRead ( i, buffer2, 1 );
         assert(retCode == 1);
         assert(memcmp(buffer1,buffer2,SECTOR_SIZE)==0);
 

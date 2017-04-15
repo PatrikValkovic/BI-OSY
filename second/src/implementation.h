@@ -132,7 +132,7 @@ void RaidStart(TBlkDev* dev)
     raid.timestamp = timestamps[maxRepresentation];
 
     for (int j = 0; j < raid.devices && raid.countOfBrokenDisks <= 2; j++)
-        if (timestampsPosition[j] != j)
+        if (timestampsPosition[j] != maxRepresentation)
             raid.brokenDisks[raid.countOfBrokenDisks++] = j;
 
 
@@ -211,12 +211,13 @@ int RaidRead(int sector, void* d, int sectorCnt)
         int column;
 
         int sectorAtBeginOfLine = line * (raid.devices - 2);
-        for(column=0;sectorAtBeginOfLine>0;column++)
+        int countOfSteps = workingSector - sectorAtBeginOfLine;
+        for(column=0;countOfSteps>0;column++)
         {
             if(column==XORcolumn || column == REEDcolumn)
                 continue;
             else
-                sectorAtBeginOfLine--;
+                countOfSteps--;
         }
 
         //line and sector correct
@@ -258,12 +259,13 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         int column;
 
         int sectorAtBeginOfLine = line * (raid.devices - 2);
-        for(column=0;sectorAtBeginOfLine>0;column++)
+        int countOfSteps = workingSector - sectorAtBeginOfLine;
+        for(column=0;countOfSteps>0;column++)
         {
             if(column==XORcolumn || column == REEDcolumn)
                 continue;
             else
-                sectorAtBeginOfLine--;
+                countOfSteps--;
         }
 
         //line and sector correct
