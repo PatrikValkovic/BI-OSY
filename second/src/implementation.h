@@ -13,7 +13,7 @@ namespace Valkovic
 
         int devices;
         int sectors;
-        int status;
+        int status = RAID_STOPPED;
         int countOfBrokenDisks;
         int brokenDisks[2];
         unsigned int timestamp;
@@ -192,12 +192,24 @@ int RaidSize(void)
 
 int RaidRead(int sector, void* data, int sectorCnt)
 {
-    return 255;
+    using namespace Valkovic;
+
+    int line = sector / (raid.devices - 2);
+    int XORcolumn = line % raid.devices;
+    int REEDcolumn = (XORcolumn + 1) % raid.devices;
+
+    return sectorCnt;
 }
 
 int RaidWrite(int sector, const void* data, int sectorCnt)
 {
-    return 255;
+    using namespace Valkovic;
+
+    int line = sector / (raid.devices - 2);
+    int XORcolumn = line % raid.devices;
+    int REEDcolumn = (XORcolumn + 1) % raid.devices;
+
+    return sectorCnt;
 }
 
 int RaidResync(void)
