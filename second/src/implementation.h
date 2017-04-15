@@ -371,33 +371,93 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
         workingSector++;
     }
 
-    for (; workingSector < endSector && raid.status == RAID_DEGRADED; workingSector++)
+    for (; workingSector < endSector && raid.status == RAID_DEGRADED;)
     {
         int line, column;
         raid.position(workingSector, column, line);
         int xorDisk = line % raid.devices;
         int reedDisk = (xorDisk + 1) % raid.devices;
 
-        char oldData[SECTOR_SIZE];
-        bool oldReaded = false;
+
         if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
         {
+            char oldData[SECTOR_SIZE];
             //Writable disk is OK
             if(raid.read(column,line,oldData,1) != 1)
             {
                 //canot read from disk, broken
                 continue;
             }
-            oldReaded = true;
             if(raid.write(column,line,data,1) != 1)
             {
                 //cannot write to disk, broken
                 continue;
             }
-        }
-        else if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk))
-        {
+            char xorBuffer[SECTOR_SIZE];
+            if(raid.read(xorDisk,line,xorBuffer,1) != 1)
+            {
+                //cannot read from XOR disk
+                //ignore, XOR disk just broke
+                data += SECTOR_SIZE;
+                wrote++;
+                workingSector++;
+                continue; //TODO solve REED file
+            }
 
+            //new XOR value = oldXOR ^ oldData ^ newData
+            for(int i=0;i<SECTOR_SIZE;i++)
+                xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
+
+            if(raid.write(xorDisk,line,xorBuffer,1) != 1)
+            {
+                //cannot write to XOR disk
+                //ignore, XOR disk just broke
+                data += SECTOR_SIZE;
+                wrote++;
+                workingSector++;
+                continue; //TODO solve REED file
+            }
+
+            //TODO write to REED file
+        }
+        else if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk)) //finished
+        {
+            char oldData[SECTOR_SIZE];
+            //Writable disk is OK
+            if(raid.read(column,line,oldData,1) != 1)
+            {
+                //canot read from disk, broken
+                continue;
+            }
+            if(raid.write(column,line,data,1) != 1)
+            {
+                //cannot write to disk, broken
+                continue;
+            }
+            char xorBuffer[SECTOR_SIZE];
+            if(raid.read(xorDisk,line,xorBuffer,1) != 1)
+            {
+                //cannot read from XOR disk
+                //ignore, XOR disk just broke
+                data += SECTOR_SIZE;
+                wrote++;
+                workingSector++;
+                continue;
+            }
+
+            //new XOR value = oldXOR ^ oldData ^ newData
+            for(int i=0;i<SECTOR_SIZE;i++)
+                xorBuffer[i] = xorBuffer[i] ^ oldData[i] ^ data[i];
+
+            if(raid.write(xorDisk,line,xorBuffer,1) != 1)
+            {
+                //cannot write to XOR disk
+                //ignore, XOR disk just broke
+                data += SECTOR_SIZE;
+                wrote++;
+                workingSector++;
+                continue;
+            }
         }
         else if(raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
         {
