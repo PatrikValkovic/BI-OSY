@@ -1,4 +1,6 @@
 from optparse import OptionParser
+import sys
+from jinja2 import Environment, PackageLoader
 
 parser = OptionParser()
 parser.add_option('-l', '--lines', help='Maximum count of lines for generated code', default=1000, type='int',
@@ -17,7 +19,11 @@ checkReturn = options.checkReturn
 countOfDevices = options.countOfDevices
 sizeOfSectors = options.sizeOfSectors
 
-print("File with maximum of " + str(countOfLines) + " will be generated")
+print("File with " + str(countOfLines) + " commands will be generated")
 print("Raid will have " + str(countOfDevices) + " devices, each with " + str(sizeOfSectors) + ' sectors')
 print("Program " + ('will' if checkReturn else 'will not') + " control return values")
 print("Disk have " + str(failChance) + "% to fail")
+
+env = Environment(loader=PackageLoader('templates', ''))
+temp = env.get_template('demoTemp.cpp')
+print(temp.render())
