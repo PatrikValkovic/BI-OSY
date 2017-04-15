@@ -129,6 +129,7 @@ void RaidStart(TBlkDev* dev)
         if(timestampsCount[i] > timestampsCount[maxRepresentation])
             maxRepresentation = i;
     }
+    raid.timestamp = timestamps[maxRepresentation];
 
     for(int j=0;j<raid.devices && raid.countOfBrokenDisks<=2;j++)
         if(timestampsPosition[j]!=j)
@@ -151,7 +152,31 @@ void RaidStart(TBlkDev* dev)
 
 void RaidStop(void)
 {
+    using namespace Valkovic;
 
+    if(raid.status == RAID_FAILED || raid.status == RAID_STOPPED)
+    {
+        raid.status = RAID_STOPPED;
+        return;
+    }
+
+    raid.timestamp++;
+
+    char data[SECTOR_SIZE];
+    memcpy(data,&raid.timestamp,sizeof(unsigned int));
+
+    for(int i=0;i<raid.devices;i++)
+    {
+        if(raid.countOfBrokenDisks==1 && raid.brokenDisks[0]==i)
+            continue;
+        if(raid.countOfBrokenDisks==2 && (raid.brokenDisks[0]==i || raid.brokenDisks[1]==i))
+            continue;
+
+        raid.write(i,raid.sectors-1,data,1);
+    }
+
+    raid.status = RAID_STOPPED;
+    return;
 }
 
 int RaidStatus(void)
