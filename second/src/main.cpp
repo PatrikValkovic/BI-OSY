@@ -33,6 +33,9 @@ int                diskRead                                ( int               d
                                                              void            * data,
                                                              int               sectorCnt )
 {
+    if(device == 1) //TODO my
+        return 0;
+
     if ( device < 0 || device >= RAID_DEVICES )
         return 0;
     if ( g_Fp[device] == NULL )
@@ -50,6 +53,10 @@ int                diskWrite                               ( int               d
                                                              const void      * data,
                                                              int               sectorCnt )
 {
+    if(device == 1) //TODO my
+        return 0;
+
+
     if ( device < 0 || device >= RAID_DEVICES )
         return 0;
     if ( g_Fp[device] == NULL )
@@ -164,7 +171,7 @@ int main ( void )
 
     RaidStart ( dev );
 
-    assert(RaidStatus() == RAID_OK);
+    assert(RaidStatus() == RAID_DEGRADED);
 
     /* your raid device shall be up.
      * try to read and write all RAID sectors:

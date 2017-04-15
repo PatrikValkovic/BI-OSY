@@ -140,13 +140,12 @@ void RaidStart(TBlkDev* dev)
 
     for (int i = 0; i < raid.devices; i++)
     {
+        timestampsPosition[i] = -1;
         if (raid.read(i, raid.sectors - 1, data, 1) != 1)
         {
-            if (raid.brokenDisk != -1)
-            {
-                raid.status = RAID_FAILED;
+            if(raid.status == RAID_FAILED)
                 return;
-            }
+
             raid.brokenDisk = i;
             continue;
         }
@@ -184,7 +183,7 @@ void RaidStart(TBlkDev* dev)
     for (int j = 0; j < raid.devices; j++)
         if (timestampsPosition[j] != maxRepresentation)
         {
-            if (raid.brokenDisk != -1)
+            if (raid.brokenDisk != -1 && raid.brokenDisk != j)
             {
                 raid.status = RAID_FAILED;
                 return;
@@ -295,6 +294,9 @@ int RaidRead(int sector, void* d, int sectorCnt)
                     for(int j=0;j<SECTOR_SIZE;j++)
                         data[j] = data[j] ^ buffer[j];
                 }
+            data += SECTOR_SIZE;
+            workingSector++;
+            readed++;
         }
     }
 
@@ -421,7 +423,12 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
                 }
             for(int j=0;j<SECTOR_SIZE;j++)
                 xored[j] = xored[j] ^ data[j];
-            raid.write(xorDisk,line,xored,1);
+            if(raid.write(xorDisk,line,xored,1) == 1)
+            {
+                data += SECTOR_SIZE;
+                wrote++;
+                workingSector++;
+            }
         }
     }
 
