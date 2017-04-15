@@ -108,6 +108,11 @@ void RaidStart(TBlkDev* dev)
 
     }
 
+    if(raid.countOfBrokenDisks > 2)
+    {
+        raid.status = RAID_FAILED;
+        return;
+    }
 
     int timestampsCount[MAX_RAID_DEVICES];
     for(int i=0;i<MAX_RAID_DEVICES;i++)
@@ -129,7 +134,7 @@ void RaidStart(TBlkDev* dev)
         if(timestampsPosition[j]!=j)
             raid.brokenDisks[raid.countOfBrokenDisks++] = j;
 
-    
+
     if(raid.countOfBrokenDisks == 0)
     {
         raid.status = RAID_OK;
