@@ -146,6 +146,9 @@ TBlkDev          * openDisks                               ( void )
 //-------------------------------------------------------------------------------------------------
 int main ( void )
 {
+    assert(RaidCreate(NULL) == 0);
+    assert(RaidCreate(nullptr) == 0);
+
     /* create the disks before we use them
      */
     TBlkDev * dev = createDisks ();
@@ -156,7 +159,7 @@ int main ( void )
      */
 
     int retCode = RaidCreate ( dev );
-    assert ( retCode );
+    assert ( retCode == 1 );
 
     /* start it */
 
@@ -168,10 +171,15 @@ int main ( void )
 
     for ( int i = 0; i < RaidSize (); i ++ )
     {
-        char buffer [SECTOR_SIZE];
+        char buffer1 [SECTOR_SIZE] = {'a','b','c','d'};
+        char buffer2 [SECTOR_SIZE] = {'x', 'y', 'y', 'z'};
 
-        retCode = RaidRead ( i, buffer, 1 );
-        retCode = RaidWrite ( i, buffer, 1 );
+        retCode = RaidRead ( i, buffer1, 1 );
+        assert(retCode == 1);
+        retCode = RaidWrite ( i, buffer2, 1 );
+        assert(retCode == 1);
+        assert(memcmp(buffer1,buffer2,SECTOR_SIZE)==0);
+
     }
 
     /* Extensive testing of your RAID implementation ...
