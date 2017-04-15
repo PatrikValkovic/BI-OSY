@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cassert>
+
 using namespace std;
 
 #define SECTOR_SIZE                     512

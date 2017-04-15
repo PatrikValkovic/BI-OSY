@@ -1,6 +1,5 @@
 #include "implementation.h"
 
-
 /* SW RAID6 - basic test
  *
  * The testing of the RAID driver requires a backend (simulating the underlying disks).

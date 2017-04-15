@@ -10,12 +10,6 @@ namespace Valkovic
         int (* _read )(int, int, void*, int);
         int (* _write )(int, int, const void*, int);
     public:
-        raidInstance(TBlkDev* dev) :
-                _read(dev->m_Read), _write(dev->m_Write),
-                devices(dev->m_Devices), sectors(dev->m_Sectors),
-                status(RAID_OK), countOfBrokenDisks(0),
-                brokenDisks{-1, -1}, timestamp(1)
-        {}
 
         int devices;
         int sectors;
@@ -23,6 +17,19 @@ namespace Valkovic
         int countOfBrokenDisks;
         int brokenDisks[2];
         unsigned int timestamp;
+
+        void getData(TBlkDev* dev)
+        {
+            _read = dev->m_Read;
+            _write = dev->m_Write;
+            devices = dev->m_Devices;
+            sectors = dev->m_Sectors;
+            status = RAID_OK;
+            countOfBrokenDisks = 0;
+            brokenDisks[0] = -1;
+            brokenDisks[1] = -1;
+            timestamp = 1;
+        }
 
         int read(int diskNumber, int sectorNumber, void* data, int sizeInSectors)
         {
@@ -35,7 +42,7 @@ namespace Valkovic
         }
     };
 
-    raidInstance* raid = nullptr;
+    static raidInstance raid;
 }
 
 int RaidCreate(TBlkDev* dev)
@@ -45,26 +52,24 @@ int RaidCreate(TBlkDev* dev)
     if (dev == nullptr)
         return 0;
 
-    if (raid != nullptr)
-        return 0;
-
-    raid = new raidInstance(dev);
+    raid.getData(dev);
+    raid.status = RAID_STOPPED;
 
     char servisInformations[SECTOR_SIZE];
-    memcpy(servisInformations, &raid->timestamp, sizeof(unsigned int));
+    memcpy(servisInformations, &raid.timestamp, sizeof(unsigned int));
 
-    bool successfullyWrited = true;
-    for (int i = 0; i < raid->devices && successfullyWrited; i++)
-        successfullyWrited = (raid->write(i, raid->sectors - 1, servisInformations, 1) == 1);
+    int countOfBroken = 0;
+    for (int i = 0; i < raid.devices && countOfBroken < 2; i++)
+        if (raid.write(i, raid.sectors - 1, servisInformations, 1) != 1)
+        {
+            countOfBroken++;
+            raid.brokenDisks[raid.countOfBrokenDisks++] = i;
+        }
 
-    if (!successfullyWrited)
+    if (countOfBroken > 2)
     {
-        delete raid;
-        raid = nullptr;
         return 0;
     }
-
-    raid->status = RAID_STOPPED;
     return 1;
 }
 
@@ -80,7 +85,7 @@ void RaidStop(void)
 
 int RaidStatus(void)
 {
-    return 255;
+    return Valkovic::raid.status;
 }
 
 int RaidSize(void)
