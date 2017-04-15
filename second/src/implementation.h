@@ -14,8 +14,7 @@ namespace Valkovic
         int devices;
         int sectors;
         int status = RAID_STOPPED;
-        int countOfBrokenDisks;
-        int brokenDisks[2];
+        int brokenDisk;
         unsigned int timestamp;
 
         void getData(TBlkDev* dev)
@@ -25,9 +24,7 @@ namespace Valkovic
             devices = dev->m_Devices;
             sectors = dev->m_Sectors;
             status = RAID_OK;
-            countOfBrokenDisks = 0;
-            brokenDisks[0] = -1;
-            brokenDisks[1] = -1;
+            brokenDisk = -1;
             timestamp = 1;
         }
 
@@ -36,11 +33,15 @@ namespace Valkovic
             int readed = this->_read(diskNumber, sectorNumber, data, sizeInSectors);
             if (readed != sizeInSectors)
             {
-                brokenDisks[countOfBrokenDisks++] = diskNumber;
-                if (countOfBrokenDisks <= 2)
-                    status = RAID_DEGRADED;
-                else
+                if(brokenDisk != -1)
+                {
                     status = RAID_FAILED;
+                }
+                else
+                {
+                    brokenDisk = diskNumber;
+                    status = RAID_DEGRADED;
+                }
             };
             return readed;
         }
@@ -50,20 +51,22 @@ namespace Valkovic
             int wrote = this->_write(diskNumber, sectorNumber, data, sizeInSectors);
             if (wrote != sizeInSectors)
             {
-                brokenDisks[countOfBrokenDisks++] = diskNumber;
-                if (countOfBrokenDisks <= 2)
-                    status = RAID_DEGRADED;
-                else
+                if(brokenDisk != -1)
+                {
                     status = RAID_FAILED;
+                }
+                else
+                {
+                    brokenDisk = diskNumber;
+                    status = RAID_DEGRADED;
+                }
             };
             return wrote;
         }
 
         inline bool isNotBroken(int disk) const
         {
-            return countOfBrokenDisks == 0 ||
-                   (countOfBrokenDisks == 1 && brokenDisks[0] != disk) ||
-                   (countOfBrokenDisks == 2 && brokenDisks[0] != disk && brokenDisks[1] != disk);
+            return brokenDisk == -1 || brokenDisk != disk;
         }
 
         inline bool isBroken(int disk) const
@@ -73,19 +76,14 @@ namespace Valkovic
 
         void position(int sector, int& column, int& line) const
         {
-            line = sector / (devices - 2);
+            line = sector / (devices - 1);
             int XORcolumn = line % devices;
-            int REEDcolumn = (XORcolumn + 1) % devices;
 
-            int sectorAtBeginOfLine = line * (devices - 2);
+            int sectorAtBeginOfLine = line * (devices - 1);
             int countOfSteps = sector - sectorAtBeginOfLine;
-            for (column = 0; countOfSteps > 0 || XORcolumn==column || REEDcolumn==column; column++)
-            {
-                if (column == XORcolumn || column == REEDcolumn)
-                    continue;
-                else
-                    countOfSteps--;
-            }
+            if(XORcolumn <= countOfSteps)
+                countOfSteps++;
+            column = countOfSteps;
         }
     };
 
@@ -106,14 +104,14 @@ int RaidCreate(TBlkDev* dev)
     memcpy(servisInformations, &raid.timestamp, sizeof(unsigned int));
 
     int countOfBroken = 0;
-    for (int i = 0; i < raid.devices && countOfBroken <= 2; i++)
+    for (int i = 0; i < raid.devices && countOfBroken <= 1; i++)
         if (raid.write(i, raid.sectors - 1, servisInformations, 1) != 1)
         {
             countOfBroken++;
-            raid.brokenDisks[raid.countOfBrokenDisks++] = i;
+            raid.brokenDisk = i;
         }
 
-    if (countOfBroken > 2)
+    if (countOfBroken > 1)
     {
         return 0;
     }
@@ -134,11 +132,16 @@ void RaidStart(TBlkDev* dev)
     int timestampsPosition[MAX_RAID_DEVICES];
     char data[SECTOR_SIZE];
 
-    for (int i = 0; i < raid.devices && raid.countOfBrokenDisks <= 2; i++)
+    for (int i = 0; i < raid.devices; i++)
     {
         if (raid.read(i, raid.sectors - 1, data, 1) != 1)
         {
-            raid.brokenDisks[raid.countOfBrokenDisks++] = i;
+            if(raid.brokenDisk != -1)
+            {
+                raid.status = RAID_FAILED;
+                return;
+            }
+            raid.brokenDisk = i;
             continue;
         }
         unsigned int timestamp;
@@ -153,12 +156,6 @@ void RaidStart(TBlkDev* dev)
             }
         }
 
-    }
-
-    if (raid.countOfBrokenDisks > 2)
-    {
-        raid.status = RAID_FAILED;
-        return;
     }
 
     int timestampsCount[MAX_RAID_DEVICES];
@@ -178,18 +175,21 @@ void RaidStart(TBlkDev* dev)
     }
     raid.timestamp = timestamps[maxRepresentation];
 
-    for (int j = 0; j < raid.devices && raid.countOfBrokenDisks <= 2; j++)
+    for (int j = 0; j < raid.devices; j++)
         if (timestampsPosition[j] != maxRepresentation)
-            raid.brokenDisks[raid.countOfBrokenDisks++] = j;
+        {
+            if(raid.brokenDisk != -1)
+            {
+                raid.status = RAID_FAILED;
+                return;
+            }
+            raid.brokenDisk = j;
+        }
 
 
-    if (raid.countOfBrokenDisks == 0)
+    if (raid.brokenDisk == -1)
     {
         raid.status = RAID_OK;
-    }
-    else if (raid.countOfBrokenDisks > 2)
-    {
-        raid.status = RAID_FAILED;
     }
     else
     {
@@ -214,9 +214,7 @@ void RaidStop(void)
 
     for (int i = 0; i < raid.devices; i++)
     {
-        if (raid.countOfBrokenDisks == 1 && raid.brokenDisks[0] == i)
-            continue;
-        if (raid.countOfBrokenDisks == 2 && (raid.brokenDisks[0] == i || raid.brokenDisks[1] == i))
+        if(raid.brokenDisk == i)
             continue;
 
         raid.write(i, raid.sectors - 1, data, 1);
@@ -393,15 +391,17 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
                 //cannot write to disk, broken
                 continue;
             }
+
+            data += SECTOR_SIZE;
+            wrote++;
+            workingSector++;
+
             char xorBuffer[SECTOR_SIZE];
             if(raid.read(xorDisk,line,xorBuffer,1) != 1)
             {
                 //cannot read from XOR disk
                 //ignore, XOR disk just broke
-                data += SECTOR_SIZE;
-                wrote++;
-                workingSector++;
-                continue; //TODO solve REED file
+                goto writeREED1;
             }
 
             //new XOR value = oldXOR ^ oldData ^ newData
@@ -412,12 +412,11 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
             {
                 //cannot write to XOR disk
                 //ignore, XOR disk just broke
-                data += SECTOR_SIZE;
-                wrote++;
-                workingSector++;
-                continue; //TODO solve REED file
+                goto writeREED1;
             }
 
+            writeREED1:
+                continue;
             //TODO write to REED file
         }
         else if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk)) //finished
