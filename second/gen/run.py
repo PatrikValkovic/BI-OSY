@@ -26,4 +26,5 @@ print("Disk have " + str(failChance) + "% to fail")
 
 env = Environment(loader=PackageLoader('templates', ''))
 temp = env.get_template('demoTemp.cpp')
-print(temp.render())
+
+print(temp.render(countOfSectors=str(sizeOfSectors),countOfDisks=str(countOfDevices)))
