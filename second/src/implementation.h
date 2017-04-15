@@ -364,6 +364,8 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
             continue;
         }
 
+        //TODO write to REED file
+
         data += SECTOR_SIZE;
         wrote++;
         workingSector++;
@@ -371,7 +373,56 @@ int RaidWrite(int sector, const void* d, int sectorCnt)
 
     for (; workingSector < endSector && raid.status == RAID_DEGRADED; workingSector++)
     {
-        //TODO
+        int line, column;
+        raid.position(workingSector, column, line);
+        int xorDisk = line % raid.devices;
+        int reedDisk = (xorDisk + 1) % raid.devices;
+
+        char oldData[SECTOR_SIZE];
+        bool oldReaded = false;
+        if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        {
+            //Writable disk is OK
+            if(raid.read(column,line,oldData,1) != 1)
+            {
+                //canot read from disk, broken
+                continue;
+            }
+            oldReaded = true;
+            if(raid.write(column,line,data,1) != 1)
+            {
+                //cannot write to disk, broken
+                continue;
+            }
+        }
+        else if(raid.isNotBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk))
+        {
+
+        }
+        else if(raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        {
+
+        }
+        else if(raid.isNotBroken(column) && raid.isBroken(xorDisk) && raid.isBroken(reedDisk))
+        {
+
+        }
+        if(raid.isBroken(column) && raid.isNotBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        {
+
+        }
+        else if(raid.isBroken(column) && raid.isNotBroken(xorDisk) && raid.isBroken(reedDisk))
+        {
+
+        }
+        else if(raid.isBroken(column) && raid.isBroken(xorDisk) && raid.isNotBroken(reedDisk))
+        {
+
+        }
+        else if(raid.isBroken(column) && raid.isBroken(xorDisk) && raid.isBroken(reedDisk))
+        {
+
+        }
     }
 
     return wrote;
