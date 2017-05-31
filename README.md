@@ -1,4 +1,5 @@
-= BI-OSY
+BI-OSY
+======
 
 Implementation of programs for BI-OSY (Operation systems) subject.
 
